@@ -37,12 +37,14 @@ RealManual does not replace the game's normal steering, accelerator, brake, menu
 
    The resulting layout should contain files similar to:
 
+   ```text
    Need for Speed Most Wanted/
    └── scripts/
        ├── RealManual.ahk
        ├── RealManual_InputDetector.ahk
        ├── config.ini
        └── MW2005-HShifter.asi
+   ```
 
 5. Configure `config.ini` for your hardware. See [Configuration](#configuration).
 
@@ -84,24 +86,28 @@ Run: RealManual_InputDetector.ahk
 The detector scans the Windows joystick slots and displays each detected device, its axes, and currently pressed buttons.
 
 Typical names look like:
-   1JoyX
-   1JoyY
-   1JoyZ
-   1JoyR
-   1Joy13
-   1Joy19
-   2JoyR
+```text
+1JoyX
+1JoyY
+1JoyZ
+1JoyR
+1Joy13
+1Joy19
+2JoyR
+```
 
 The number before `Joy` is the Windows/AutoHotkey joystick number. The suffix identifies an axis or button.
 
 Move or press **one control at a time** and watch which value changes.
 
 For example:
-   Clutch pedal     -> 1JoyY
-   First gear       -> 1Joy13
-   Second gear      -> 1Joy14
-   Reverse gate     -> 1Joy19
-   USB handbrake    -> 2JoyR
+```text
+Clutch pedal     -> 1JoyY
+First gear       -> 1Joy13
+Second gear      -> 1Joy14
+Reverse gate     -> 1Joy19
+USB handbrake    -> 2JoyR
+```
 
 
 The detector supports joystick slots 1-16 and scans buttons 1-32. `F9` reloads the detector and `Esc` closes it.
@@ -254,6 +260,7 @@ The required axes and buttons should react there before you troubleshoot RealMan
 
 Use this order:
 
+```text
 Hardware / vendor driver
         ↓
 joy.cpl
@@ -265,6 +272,7 @@ config.ini
 RealManual.ahk
         ↓
 MW2005-HShifter.asi / NFSMW
+```
 
 If one layer does not work, fix that layer before moving down the chain.
 
@@ -425,18 +433,24 @@ Open **Device Manager**:
 3. Open the **Details** tab.
 4. Select **Hardware Ids**.
 5. Note the value containing:
-      VID_XXXX&PID_YYYY
+         ```text
+   VID_XXXX&PID_YYYY
+   ```
    
 
 For example, the Logitech G29 uses:
-   VID_046D&PID_C24F
+   ```text
+VID_046D&PID_C24F
+```
 
 
 #### Back up the per-user joystick keys
 
 For a G29, PowerShell/Command Prompt examples are:
-   reg export "HKCU\System\CurrentControlSet\Control\MediaProperties\PrivateProperties\Joystick\OEM\VID_046D&PID_C24F" "%USERPROFILE%\Desktop\G29-OEM-backup.reg"
-   reg export "HKCU\System\CurrentControlSet\Control\MediaProperties\PrivateProperties\DirectInput\VID_046D&PID_C24F" "%USERPROFILE%\Desktop\G29-DirectInput-backup.reg"
+```bat
+reg export "HKCU\System\CurrentControlSet\Control\MediaProperties\PrivateProperties\Joystick\OEM\VID_046D&PID_C24F" "%USERPROFILE%\Desktop\G29-OEM-backup.reg"
+reg export "HKCU\System\CurrentControlSet\Control\MediaProperties\PrivateProperties\DirectInput\VID_046D&PID_C24F" "%USERPROFILE%\Desktop\G29-DirectInput-backup.reg"
+```
 
 
 For another device, replace the VID/PID with the hardware ID reported by Device Manager.
@@ -448,14 +462,20 @@ If a key does not exist, `reg export` will report that it could not find it; do 
 Close NFSMW, RealManual, the Input Detector, and other controller tools. Disconnect the controller if practical.
 
 Delete **only the matching VID/PID key** under these locations:
-   HKEY_CURRENT_USER\System\CurrentControlSet\Control\MediaProperties\PrivateProperties\Joystick\OEM\VID_XXXX&PID_YYYY
+   ```text
+HKEY_CURRENT_USER\System\CurrentControlSet\Control\MediaProperties\PrivateProperties\Joystick\OEM\VID_XXXX&PID_YYYY
+```
 
 and:
-   HKEY_CURRENT_USER\System\CurrentControlSet\Control\MediaProperties\PrivateProperties\DirectInput\VID_XXXX&PID_YYYY
+   ```text
+HKEY_CURRENT_USER\System\CurrentControlSet\Control\MediaProperties\PrivateProperties\DirectInput\VID_XXXX&PID_YYYY
+```
 
 For the G29 example:
-   reg delete "HKCU\System\CurrentControlSet\Control\MediaProperties\PrivateProperties\Joystick\OEM\VID_046D&PID_C24F" /f
-   reg delete "HKCU\System\CurrentControlSet\Control\MediaProperties\PrivateProperties\DirectInput\VID_046D&PID_C24F" /f
+```bat
+reg delete "HKCU\System\CurrentControlSet\Control\MediaProperties\PrivateProperties\Joystick\OEM\VID_046D&PID_C24F" /f
+reg delete "HKCU\System\CurrentControlSet\Control\MediaProperties\PrivateProperties\DirectInput\VID_046D&PID_C24F" /f
+```
 
 Then:
 
@@ -472,26 +492,32 @@ The purpose of this reset is to remove stale per-user joystick/OEM/DirectInput s
 #### Check `CurrentJoystickSettings`
 
 Legacy joystick enumeration also uses a mapping under:
-   HKEY_CURRENT_USER\System\CurrentControlSet\Control\MediaResources\Joystick\DINPUT.DLL\CurrentJoystickSettings
+   ```text
+HKEY_CURRENT_USER\System\CurrentControlSet\Control\MediaResources\Joystick\DINPUT.DLL\CurrentJoystickSettings
+```
 
 
 Typical values include names such as:
-   Joystick1OEMName
-   Joystick2OEMName
-   Joystick1Configuration
-   Joystick2Configuration
+```text
+Joystick1OEMName
+Joystick2OEMName
+Joystick1Configuration
+Joystick2Configuration
+```
 
 The `Joystick#OEMName` values identify which VID/PID occupies a legacy joystick slot.
 
 If this key contains stale mappings, or is missing/corrupt on one Windows user profile while the same hardware works on another profile, the problem may be per-user enumeration rather than the physical wheel or USB driver.
 
 Before changing it, export the key:
-   reg export "HKCU\System\CurrentControlSet\Control\MediaResources\Joystick\DINPUT.DLL\CurrentJoystickSettings" "%USERPROFILE%\Desktop\CurrentJoystickSettings-backup.reg"
+   ```bat
+reg export "HKCU\System\CurrentControlSet\Control\MediaResources\Joystick\DINPUT.DLL\CurrentJoystickSettings" "%USERPROFILE%\Desktop\CurrentJoystickSettings-backup.reg"
+```
 
 
 For a targeted cleanup, remove stale `Joystick#OEMName` and matching `Joystick#Configuration` values that clearly reference a controller which is no longer present, then reconnect/re-enumerate the hardware.
 
-Deleting the entire `CurrentJoystickSettings` key should be treated as a last resort after a backup; allow Windows/vendor software to rebuild it..
+Deleting the entire `CurrentJoystickSettings` key should be treated as a last resort after a backup; allow Windows/vendor software to rebuild it.
 
 #### Driver re-enumeration if registry reset is not enough
 
@@ -554,9 +580,11 @@ https://github.com/Eradinelle/MW2005-HShifter
 MW2005-HShifter incorporates **MinHook** and Hacker Disassembler Engine components.
 
 See:
-   THIRD_PARTY_NOTICES.md
-   licenses/MW2005-HShifter-LICENSE.txt
-   licenses/MinHook-LICENSE.txt
+```text
+THIRD_PARTY_NOTICES.md
+licenses/MW2005-HShifter-LICENSE.txt
+licenses/MinHook-LICENSE.txt
+```
 
 for attribution and license details.
 
