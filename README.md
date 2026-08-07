@@ -432,10 +432,7 @@ Open **Device Manager**:
 2. Open **Properties**.
 3. Open the **Details** tab.
 4. Select **Hardware Ids**.
-5. Note the value containing:
-         ```text
-   VID_XXXX&PID_YYYY
-   ```
+5. Note the value containing: VID_XXXX&PID_YYYY
    
 
 For example, the Logitech G29 uses:
