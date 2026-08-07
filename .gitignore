@@ -1,0 +1,14 @@
+# RealManual runtime files
+startup_log.txt
+
+# Compiled dependency distributed through Releases
+scripts/MW2005-HShifter.asi
+
+# Windows
+Thumbs.db
+Desktop.ini
+
+# Temporary / backup files
+*.tmp
+*.bak
+*~
