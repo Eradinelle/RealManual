@@ -46,7 +46,7 @@ RealManual does not replace the game's normal steering, accelerator, brake, menu
        └── MW2005-HShifter.asi
    ```
 
-5. Configure `config.ini` for your hardware. See [Configuration](#configuration).
+5. Configure `config.ini` for your hardware/preferences. See [Configuration](#configuration).
 
 6. Run `RealManual.ahk` **before starting the game**.
 
@@ -245,6 +245,7 @@ If an input suddenly stops working after a hardware change, run the Input Detect
 - Troubleshooting log generation
 - Separate RealManual Input Detector utility
 - INI-based controller mappings, thresholds, timing, output keys, and feature switches
+- Persistent in-game stopwatch
 
 ---
 
