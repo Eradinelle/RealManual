@@ -147,6 +147,7 @@ noInputStallDelayMs := ReadInt("Stalling", "NoInputStallDelayMs", 300) ; time fi
 resetButton := ReadText("Hotkeys", "ResetButton", "1Joy10")
 pauseButton := ReadText("Hotkeys", "PauseButton", "")
 reloadButton := ReadText("Hotkeys", "ReloadButton", "^F9")
+helpButton := ReadText("Hotkeys", "HelpButton", "F7") ; displays current RealManual modes and hotkeys
 toggleTransmissionButton := ReadText("Hotkeys", "ToggleTransmissionButton", "")
 toggleSequentialInvertButton := ReadText("Hotkeys", "ToggleSequentialInvertButton", "+F11")
 toggleClutchButton := ReadText("Hotkeys", "ToggleClutchButton", "")
@@ -1022,12 +1023,13 @@ ModeText() { ; returns current transmission mode as text
 ; Live hotkeys change the running script state only. They do not write back to
 ; config.ini. Reloading RealManual restores the saved config file values.
 ; =============================================================================
-ShowLiveModeStatus(changedSetting) { ; shows current live mode after a hotkey change
+ShowLiveModeStatus(changedSetting) {
     global transmissionIsSequential, requireClutch, clutchActsAsNeutral, invertSequentialAxis, maxForwardGear ; live settings
     global enableShifterHandbrake, invertShifterHandbrake ; shifter handbrake settings
     global toggleTransmissionButton, toggleClutchButton, toggleNeutralButton, toggleSequentialInvertButton ; mode hotkeys
     global toggleFiveGearModeButton, toggleShifterHandbrakeButton, toggleShifterHandbrakeInvertButton ; feature hotkeys
     global enableStalling, toggleStallingButton ; stalling
+    global helpButton
 
     message := changedSetting "`n"
     message .= "Transmission: " ModeText() " [" toggleTransmissionButton "]`n"
@@ -1038,6 +1040,7 @@ ShowLiveModeStatus(changedSetting) { ; shows current live mode after a hotkey ch
     message .= "Shifter Handbrake: " BoolText(enableShifterHandbrake) " [" toggleShifterHandbrakeButton "]`n"
     message .= "Shifter HB Invert: " BoolText(invertShifterHandbrake) " [" toggleShifterHandbrakeInvertButton "]"
     message .= "`nStalling: " BoolText(enableStalling) " [" toggleStallingButton "]"
+    message .= "`nHelp: [" helpButton "]"
 
     ShowToolTipMessage(message) ; displays optional tooltip message
 } ; end showlivemodestatus
@@ -1104,13 +1107,17 @@ IsConfigured(value) {
 ; Blank config fields are skipped safely.
 ; =============================================================================
 RegisterDynamicHotkeys() {
-    global resetButton, pauseButton, reloadButton ; utility hotkeys
+    global helpButton, resetButton, pauseButton, reloadButton ; utility hotkeys
     global toggleTransmissionButton, toggleSequentialInvertButton, toggleFiveGearModeButton ; transmission hotkeys
     global toggleClutchButton, toggleNeutralButton ; clutch hotkeys
     global toggleShifterHandbrakeButton, toggleShifterHandbrakeInvertButton ; shifter handbrake hotkeys
     global IgnitionButton, toggleStallingButton ; stalling
 
     HotIfWinActive("ahk_exe speed.exe") ; nfs focused
+
+    if Trim(helpButton) != "" {
+        Hotkey(helpButton, ShowHotkeyHelp, "On")
+    } ; end help
 
     if Trim(resetButton) != "" { ; registers reset hotkey if configured
         Hotkey(resetButton, (*) => ResetInputs(), "On") ; binds configured key to reset function
@@ -1162,6 +1169,16 @@ RegisterDynamicHotkeys() {
 
     HotIfWinActive() ; clears dynamic hotkey context so later hotkeys are not accidentally scoped
 } ; end registerdynamichotkeys
+
+; =============================================================================
+; ShowHotkeyHelp(*)
+; -----------------------------------------------------------------------------
+; Displays the same live-mode status window used after mode changes without
+; changing any RealManual setting.
+; =============================================================================
+ShowHotkeyHelp(*) {
+    ShowLiveModeStatus("RealManual Hotkeys")
+} ; end showhotkeyhelp
 
 ; =============================================================================
 ; ToggleTransmissionMode()
@@ -1613,9 +1630,35 @@ ShutOffEngine() {
 ;   2. sustained no-input stall:
 ;      first gear remains selected with the clutch released and insufficient
 ;      throttle, even when no clutch-release cycle armed the original check
+;
+; Stall behavior depends on the active clutch configuration:
+;
+; RequireClutch = false, ClutchActsAsNeutral = false
+;   - clutch input is ignored completely
+;   - first gear stalls only after sustained insufficient throttle
+;
+; RequireClutch = true, ClutchActsAsNeutral = false
+;   - pressing the clutch prevents the first-gear stall
+;   - once the clutch is sufficiently released, sustained insufficient throttle
+;     can stall the engine
+;   - clutch required to restart the engine
+;
+; RequireClutch = false, ClutchActsAsNeutral = true
+;   - releasing the clutch past the configured point without enough throttle
+;     causes an immediate stall
+;   - sustained first-gear insufficient-throttle stalling also remains active
+;   - clutch not required to restart the engine
+;
+; RequireClutch = true, ClutchActsAsNeutral = true
+;   - full clutch simulation behavior
+;   - clutch press prevents stalling
+;   - improper clutch release can stall the engine
+;   - sustained first-gear insufficient-throttle stalling remains active
+;   - clutch required to restart the engine
 ; =============================================================================
 HandleStallDetection(clutchPressed) {
     global enableStalling, engineStalled, stallDetectionArmed
+    global requireClutch, clutchActsAsNeutral
     global stallClutchReleaseThreshold, stallThrottleThreshold
     global noInputStallDelayMs, noInputStallStartTime
 
@@ -1626,6 +1669,7 @@ HandleStallDetection(clutchPressed) {
     } ; end feature gate
 
     if engineStalled {
+        stallDetectionArmed := false
         noInputStallStartTime := 0
         return
     } ; end stalled guard
@@ -1636,37 +1680,60 @@ HandleStallDetection(clutchPressed) {
         return
     } ; end first-gear gate
 
-    if clutchPressed {
-        stallDetectionArmed := true
-        noInputStallStartTime := 0
-        return
-    } ; end clutch-held branch
+    ; Any enabled clutch feature means the clutch can prevent the normal
+    ; first-gear insufficient-throttle stall while it is pressed.
+    clutchParticipatesInStallLogic := requireClutch || clutchActsAsNeutral
 
-    clutchReleasePercent := ReadClutchReleasePercent()
+    ; Only clutch-to-neutral enables the immediate clutch-release stall.
+    clutchReleaseStallEnabled := clutchActsAsNeutral
 
-    if clutchReleasePercent < stallClutchReleaseThreshold {
-        noInputStallStartTime := 0
-        return ; clutch has not yet reached the configured release point
-    } ; end clutch release threshold guard
+    if clutchParticipatesInStallLogic {
+        if clutchPressed {
+            ; Only arm an immediate clutch-release stall when clutch-to-neutral
+            ; behavior is enabled.
+            stallDetectionArmed := clutchReleaseStallEnabled
+
+            ; A pressed clutch disconnects the transmission, so the normal
+            ; first-gear no-throttle stall timer cannot continue.
+            noInputStallStartTime := 0
+            return
+        } ; end clutch-held branch
+
+        clutchReleasePercent := ReadClutchReleasePercent()
+
+        if clutchReleasePercent < stallClutchReleaseThreshold {
+            ; Clutch is still sufficiently depressed to prevent the engine from
+            ; being treated as fully coupled to first gear.
+            noInputStallStartTime := 0
+            return
+        } ; end clutch release threshold guard
+    } else {
+        ; Neither clutch feature is enabled, so the clutch axis has no effect on
+        ; stall simulation.
+        stallDetectionArmed := false
+    } ; end clutch participation branch
 
     throttlePercent := ReadThrottlePercentForStall()
 
-    if stallDetectionArmed {
+    if clutchReleaseStallEnabled && stallDetectionArmed {
         stallDetectionArmed := false
         noInputStallStartTime := 0
 
         if throttlePercent < stallThrottleThreshold {
-            StallEngine() ; 
-        }
+            StallEngine()
+        } ; end insufficient throttle branch
 
         return
     } ; end clutch-release evaluation
 
+    ; Sufficient throttle cancels the sustained first-gear stall timer.
     if throttlePercent >= stallThrottleThreshold {
         noInputStallStartTime := 0
-        return ; sufficient throttle prevents the sustained no-input stall
+        return
     } ; end throttle guard
 
+    ; First gear is selected, the clutch is no longer protecting the engine,
+    ; and throttle is insufficient. Start or continue the sustained stall timer.
     if noInputStallStartTime = 0 {
         noInputStallStartTime := A_TickCount
     } ; end timer start
@@ -1717,11 +1784,10 @@ MaintainStalledState() {
 ; Restart requires:
 ;   engine currently stalled
 ;   physical shifter in neutral
-;   reverse slot not selected
-;   clutch nearly fully pressed
+;   clutch nearly fully pressed (if RequireClutch = true)
 ; =============================================================================
 TryRestartEngine(*) {
-    global enableStalling, engineStalled, forwardKey
+    global enableStalling, engineStalled, requireClutch
     global virtualGear, pendingGear, pendingSequentialShiftCount
     global stallDetectionArmed, lastStallNeutralSendTime, noInputStallStartTime
     global lastClutchPressed, clutchNeutralSent
@@ -1739,13 +1805,13 @@ TryRestartEngine(*) {
         return
     } ; end neutral requirement
 
-    if !IsClutchFullyPressedForRestart() {
+    if requireClutch && !IsClutchFullyPressedForRestart() {
         ShowToolTipMessage("restart blocked: press clutch fully")
         return
-    } ; end clutch requirement
+    } ; end optional clutch requirement
 
-    SendGearToMod(0, true) ; ensures the game is in neutral before the rev
-    TapThrottleBlip() ; brief neutral rev used as ignition feedback
+    SendGearToMod(0, true) ; ensures the game is in neutral before restart
+    TapThrottleBlip() ; simulated engine-start rev
 
     engineStalled := false
     stallDetectionArmed := false
@@ -1763,11 +1829,11 @@ TryRestartEngine(*) {
     lastPaddleUpshiftPressed := false
     lastPaddleDownshiftPressed := false
 
-    sequentialShifterArmed := true ; neutral was explicitly verified
+    sequentialShifterArmed := true ; physical neutral was explicitly verified
     brakeHoldStartTime := 0
     brakeHoldResetTriggered := false
 
-    HandleHandbrake() ; releases only the stall request
+    HandleHandbrake() ; removes the forced engine-off handbrake request
     ShowToolTipMessage("engine started")
 } ; end tryrestartengine
 
