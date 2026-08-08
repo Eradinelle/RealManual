@@ -51,7 +51,7 @@
 #SingleInstance Force ; prevent duplicate copies of this script
 #UseHook true ; force keyboard hook for better game compatibility
 appName := "RealManual"
-appVersion := "1.0.0"
+appVersion := "1.1.1"
 SendMode "Event" ; event-style key sending for older games
 configFile := A_ScriptDir "\config.ini" ; config path needs to be beside this script
 SetKeyDelay 0, 0 ; sends keys as quickly as possible
