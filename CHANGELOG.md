@@ -24,9 +24,29 @@
 
 # 
 
-# \- Revised stalling logic to accomodate clutch settings
+# \- Persistent in-game stopwatch
 
-# \- New stopwatch function
+# \- Configurable stopwatch start/pause/resume hotkey
+
+# \- Stopwatch lap support with up to 10 visible timer entries
+
+# \- Stopwatch clear/reset hotkey
+
+# \- Help hotkey for displaying current live-mode controls
+
+#
+
+# \### Changed
+
+#
+
+# \- Expanded stalling behavior for configurations without a clutch pedal
+
+# \- Stall detection now respects `RequireClutch` and `ClutchActsAsNeutral` independently
+
+# \- Engine restart requires the clutch only when `RequireClutch` is enabled
+
+#
 
 #
 
