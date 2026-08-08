@@ -157,6 +157,9 @@ toggleShifterHandbrakeButton := ReadText("Hotkeys", "ToggleShifterHandbrakeButto
 toggleShifterHandbrakeInvertButton := ReadText("Hotkeys", "ToggleShifterHandbrakeInvertButton", "+F9")
 IgnitionButton := ReadText("Hotkeys", "IgnitionButton", "1Joy24")
 toggleStallingButton := ReadText("Hotkeys", "ToggleStallingButton", "+F10")
+stopwatchButton := ReadText("Hotkeys", "StopwatchButton", "F6") ; starts, pauses, or resumes stopwatch
+stopwatchLapButton := ReadText("Hotkeys", "StopwatchLapButton", "+F6") ; freezes current lap and starts the next
+stopwatchClearButton := ReadText("Hotkeys", "StopwatchClearButton", "^F6") ; clears stopwatch and all visible tooltips
 
 
 ; =============================================================================
@@ -170,6 +173,8 @@ writeStartupLog := ReadBool("Startup", "WriteStartupLog", true)
 keyHoldMs := ReadInt("Timing", "KeyHoldMs", 18) ; milliseconds to hold output keys
 scanIntervalMs := ReadInt("Timing", "ScanIntervalMs", 5) ; milliseconds between input scans
 throttleBlipMs := ReadInt("Stalling", "ThrottleBlipMs", 120) ; duration of simulated throttle blips
+stopwatchRefreshMs := ReadInt("Stopwatch", "RefreshMs", 50) ; milliseconds between stopwatch display updates
+stopwatchMaxLines := ReadInt("Stopwatch", "MaxLines", 10) ; maximum stopwatch lines displayed at once
 
 
 ; =============================================================================
@@ -254,6 +259,12 @@ lastStallNeutralSendTime := 0 ; controls periodic neutral keepalive while stalle
 noInputStallStartTime := 0 ; stores when first gear entered a clutch-out, no-throttle condition
 lastNFSFocused := false  ; tracks whether nfs was focused during the previous scan
 scriptPaused := false ; tracks whether RealManual input handling is paused
+stopwatchStarted := false ; true after stopwatch has been started
+stopwatchRunning := false ; true while current stopwatch segment is counting
+stopwatchStartTime := 0 ; A_TickCount when current running period began
+stopwatchAccumulatedMs := 0 ; elapsed time preserved across pause/resume
+stopwatchLaps := [] ; stores completed lap durations
+stopwatchToolTipId := 2 ; keeps stopwatch separate from normal RealManual tooltip #1
 
 
 ; =============================================================================
@@ -1091,9 +1102,214 @@ IsConfigured(value) {
     return Trim(value) != "" ; returns true when value contains text
 } ; end isconfigured
 
+; =============================================================================
+; SECTION 13: STOPWATCH
+; =============================================================================
 
 ; =============================================================================
-; SECTION 13: DYNAMIC HOTKEYS AND LIVE MODE TOGGLES
+; FormatStopwatchTime(totalMs)
+; -----------------------------------------------------------------------------
+; Converts an elapsed millisecond count into stopwatch-style text.
+;
+; Under one hour:
+;   MM:SS.mmm
+;
+; One hour or longer:
+;   HH:MM:SS.mmm
+; =============================================================================
+FormatStopwatchTime(totalMs) {
+    totalMs := Max(0, Floor(totalMs))
+
+    hours := Floor(totalMs / 3600000)
+    remainingMs := Mod(totalMs, 3600000)
+
+    minutes := Floor(remainingMs / 60000)
+    remainingMs := Mod(remainingMs, 60000)
+
+    seconds := Floor(remainingMs / 1000)
+    milliseconds := Mod(remainingMs, 1000)
+
+    if hours > 0 {
+        return Format("{:02}:{:02}:{:02}.{:03}", hours, minutes, seconds, milliseconds)
+    }
+
+    return Format("{:02}:{:02}.{:03}", minutes, seconds, milliseconds)
+} ; end formatstopwatchtime
+
+; =============================================================================
+; GetStopwatchElapsedMs()
+; -----------------------------------------------------------------------------
+; Returns the elapsed time of the current stopwatch segment.
+;
+; While running, elapsed time includes time since stopwatchStartTime.
+; While paused, only the previously accumulated time is returned.
+; =============================================================================
+GetStopwatchElapsedMs() {
+    global stopwatchStarted, stopwatchRunning
+    global stopwatchStartTime, stopwatchAccumulatedMs
+
+    if !stopwatchStarted {
+        return 0
+    }
+
+    elapsedMs := stopwatchAccumulatedMs
+
+    if stopwatchRunning {
+        elapsedMs += A_TickCount - stopwatchStartTime
+    }
+
+    return elapsedMs
+} ; end getstopwatchelapsedms
+
+; =============================================================================
+; UpdateStopwatchDisplay()
+; -----------------------------------------------------------------------------
+; Builds the persistent stopwatch tooltip.
+;
+; Completed laps remain frozen above the current timer.
+; The current timer shows whether it is running or paused.
+; =============================================================================
+UpdateStopwatchDisplay() {
+    global enableToolTips
+    global stopwatchStarted, stopwatchRunning, stopwatchLaps
+    global stopwatchToolTipId
+
+    if !enableToolTips {
+        ToolTip(,,, stopwatchToolTipId)
+        return
+    }
+
+    if !stopwatchStarted {
+        ToolTip(,,, stopwatchToolTipId)
+        return
+    }
+
+    message := "Stopwatch"
+
+    for lapNumber, lapTime in stopwatchLaps {
+        message .= "`n" lapNumber ". " FormatStopwatchTime(lapTime)
+    }
+
+    currentNumber := stopwatchLaps.Length + 1
+    currentTime := GetStopwatchElapsedMs()
+
+    if stopwatchRunning {
+        message .= "`n" currentNumber ". " FormatStopwatchTime(currentTime) "  [RUNNING]"
+    } else {
+        message .= "`n" currentNumber ". " FormatStopwatchTime(currentTime) "  [PAUSED]"
+    }
+
+    ToolTip(message, 20, 20, stopwatchToolTipId)
+} ; end updatestopwatchdisplay
+
+; =============================================================================
+; ToggleStopwatch(*)
+; -----------------------------------------------------------------------------
+; Controls the current stopwatch segment.
+;
+; Not started:
+;   starts the stopwatch
+;
+; Running:
+;   pauses at the current elapsed time
+;
+; Paused:
+;   resumes from the preserved elapsed time
+; =============================================================================
+ToggleStopwatch(*) {
+    global stopwatchStarted, stopwatchRunning
+    global stopwatchStartTime, stopwatchAccumulatedMs
+    global stopwatchRefreshMs
+
+    if !stopwatchStarted {
+        stopwatchStarted := true
+        stopwatchRunning := true
+        stopwatchStartTime := A_TickCount
+        stopwatchAccumulatedMs := 0
+
+        UpdateStopwatchDisplay()
+        SetTimer(UpdateStopwatchDisplay, Max(20, stopwatchRefreshMs))
+        return
+    } ; end initial start
+
+    if stopwatchRunning {
+        stopwatchAccumulatedMs += A_TickCount - stopwatchStartTime
+        stopwatchRunning := false
+
+        SetTimer(UpdateStopwatchDisplay, 0) ; timer no longer needs continuous updates while paused
+        UpdateStopwatchDisplay() ; preserves paused value on screen
+        return
+    } ; end pause
+
+    stopwatchRunning := true
+    stopwatchStartTime := A_TickCount
+
+    UpdateStopwatchDisplay()
+    SetTimer(UpdateStopwatchDisplay, Max(20, stopwatchRefreshMs))
+} ; end togglestopwatch
+
+; =============================================================================
+; LapStopwatch(*)
+; -----------------------------------------------------------------------------
+; Freezes the current stopwatch segment and starts a new segment from zero.
+;
+; Completed laps remain visible above the active timer.
+; The total number of displayed lines is limited by Stopwatch.MaxLines.
+; =============================================================================
+LapStopwatch(*) {
+    global stopwatchStarted, stopwatchRunning
+    global stopwatchStartTime, stopwatchAccumulatedMs
+    global stopwatchLaps, stopwatchMaxLines, stopwatchRefreshMs
+
+    if !stopwatchStarted {
+        return
+    } ; end not-started guard
+
+    maxLines := Max(1, stopwatchMaxLines)
+
+    ; One line must remain available for the currently active timer.
+    if stopwatchLaps.Length >= maxLines - 1 {
+        ShowToolTipMessage("stopwatch lap limit reached")
+        return
+    } ; end lap limit
+
+    currentTime := GetStopwatchElapsedMs()
+
+    stopwatchLaps.Push(currentTime) ; freezes completed lap
+
+    ; Every new lap begins immediately from zero.
+    stopwatchAccumulatedMs := 0
+    stopwatchStartTime := A_TickCount
+    stopwatchRunning := true
+
+    UpdateStopwatchDisplay()
+    SetTimer(UpdateStopwatchDisplay, Max(20, stopwatchRefreshMs))
+} ; end lapstopwatch
+
+; =============================================================================
+; ClearStopwatch(*)
+; -----------------------------------------------------------------------------
+; Completely resets stopwatch state and removes the stopwatch display.
+; =============================================================================
+ClearStopwatch(*) {
+    global stopwatchStarted, stopwatchRunning
+    global stopwatchStartTime, stopwatchAccumulatedMs
+    global stopwatchLaps, stopwatchToolTipId
+
+    SetTimer(UpdateStopwatchDisplay, 0)
+
+    stopwatchStarted := false
+    stopwatchRunning := false
+    stopwatchStartTime := 0
+    stopwatchAccumulatedMs := 0
+    stopwatchLaps := []
+
+    ToolTip(,,, stopwatchToolTipId) ; clears only the stopwatch tooltip
+} ; end clearstopwatch
+
+
+; =============================================================================
+; SECTION 14: DYNAMIC HOTKEYS AND LIVE MODE TOGGLES
 ; =============================================================================
 
 ; =============================================================================
@@ -1112,6 +1328,7 @@ RegisterDynamicHotkeys() {
     global toggleClutchButton, toggleNeutralButton ; clutch hotkeys
     global toggleShifterHandbrakeButton, toggleShifterHandbrakeInvertButton ; shifter handbrake hotkeys
     global IgnitionButton, toggleStallingButton ; stalling
+    global stopwatchButton, stopwatchLapButton, stopwatchClearButton ; stopwatch hotkeys
 
     HotIfWinActive("ahk_exe speed.exe") ; nfs focused
 
@@ -1166,6 +1383,18 @@ RegisterDynamicHotkeys() {
     if Trim(toggleStallingButton) != "" {
         Hotkey(toggleStallingButton, ToggleStalling, "On")
     } ; end stalling toggle
+
+    if Trim(stopwatchButton) != "" {
+        Hotkey(stopwatchButton, ToggleStopwatch, "On")
+    } ; end stopwatch start/pause/resume
+
+    if Trim(stopwatchLapButton) != "" {
+        Hotkey(stopwatchLapButton, LapStopwatch, "On")
+    } ; end stopwatch lap
+
+    if Trim(stopwatchClearButton) != "" {
+        Hotkey(stopwatchClearButton, ClearStopwatch, "On")
+    } ; end stopwatch clear
 
     HotIfWinActive() ; clears dynamic hotkey context so later hotkeys are not accidentally scoped
 } ; end registerdynamichotkeys
@@ -1444,7 +1673,7 @@ ToggleScriptPause(*) {
 
 
 ; =============================================================================
-; SECTION 14: AUXILIARY INPUT HANDLERS
+; SECTION 15: AUXILIARY INPUT HANDLERS
 ; =============================================================================
 
 ; =============================================================================
@@ -1537,7 +1766,7 @@ HandleReverse() {
 } ; end handlereverse
 
 ; =============================================================================
-; SECTION 15: STALL / ENIGNE OFF/ON SIMULATION LOGIC
+; SECTION 16: STALL / ENIGNE OFF/ON SIMULATION LOGIC
 ; =============================================================================
 
 ; =============================================================================
@@ -1857,7 +2086,7 @@ HandleIgnitionButton(*) {
 } ; end handleignitionbutton
 
 ; =============================================================================
-; SECTION 16: H-PATTERN TRANSMISSION LOGIC
+; SECTION 17: H-PATTERN TRANSMISSION LOGIC
 ; =============================================================================
 
 ; =============================================================================
@@ -1951,7 +2180,7 @@ HandleHPatternTransmission(clutchPressed) { ; processes h-pattern mode
 
 
 ; =============================================================================
-; SECTION 17: SEQUENTIAL TRANSMISSION LOGIC
+; SECTION 18: SEQUENTIAL TRANSMISSION LOGIC
 ; =============================================================================
 
 ; =============================================================================
@@ -2215,7 +2444,7 @@ HandlePaddleSync() {
 
 
 ; =============================================================================
-; SECTION 18: RECOVERY AND MANUAL SYNC
+; SECTION 19: RECOVERY AND MANUAL SYNC
 ; =============================================================================
 
 ; =============================================================================
@@ -2301,7 +2530,7 @@ ResetInputs() {
 
 
 ; =============================================================================
-; SECTION 19: MAIN LOOP
+; SECTION 20: MAIN LOOP
 ; =============================================================================
 
 ; =============================================================================
@@ -2370,7 +2599,7 @@ MainLoop() {  ; routes input to selected transmission mode
 
 
 ; =============================================================================
-; SECTION 20: STARTUP
+; SECTION 21: STARTUP
 ; =============================================================================
 
 ShowStartupInfo() ; shows startup confirmation after config loads
@@ -2379,7 +2608,7 @@ SetTimer(MainLoop, scanIntervalMs) ; starts main scan loop
 
 
 ; =============================================================================
-; SECTION 21: HOTKEYS
+; SECTION 22: HOTKEYS
 ; =============================================================================
 
 #HotIf IsNFSFocused()  ; makes the following hotkeys active only while nfs is focused
