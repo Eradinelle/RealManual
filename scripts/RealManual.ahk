@@ -1040,6 +1040,7 @@ ShowLiveModeStatus(changedSetting) {
     global toggleTransmissionButton, toggleClutchButton, toggleNeutralButton, toggleSequentialInvertButton ; mode hotkeys
     global toggleFiveGearModeButton, toggleShifterHandbrakeButton, toggleShifterHandbrakeInvertButton ; feature hotkeys
     global enableStalling, toggleStallingButton ; stalling
+    global stopwatchButton, stopwatchLapButton, stopwatchClearButton
     global helpButton
 
     message := changedSetting "`n"
@@ -1051,6 +1052,9 @@ ShowLiveModeStatus(changedSetting) {
     message .= "Shifter Handbrake: " BoolText(enableShifterHandbrake) " [" toggleShifterHandbrakeButton "]`n"
     message .= "Shifter HB Invert: " BoolText(invertShifterHandbrake) " [" toggleShifterHandbrakeInvertButton "]"
     message .= "`nStalling: " BoolText(enableStalling) " [" toggleStallingButton "]"
+    message .= "`nStopwatch Start/Pause: [" stopwatchButton "]"
+    message .= "`nStopwatch Lap: [" stopwatchLapButton "]"
+    message .= "`nStopwatch Clear: [" stopwatchClearButton "]"
     message .= "`nHelp: [" helpButton "]"
 
     ShowToolTipMessage(message) ; displays optional tooltip message
