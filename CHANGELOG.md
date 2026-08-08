@@ -16,6 +16,20 @@
 
 # 
 
+# \## \[1.1.1] - 2026-08-08
+
+# 
+
+# \### Added
+
+# 
+
+# \- Revised stalling logic to accomodate clutch settings
+
+# \- New stopwatch function
+
+#
+
 # \## \[1.0.0] - 2026-08-06
 
 # 
