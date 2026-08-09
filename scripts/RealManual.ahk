@@ -23,23 +23,25 @@
 ; =============================================================================
 ; SECTION 12: NOTIFICATIONS, VALIDATION, AND LOGGING
 ; =============================================================================
-; SECTION 13: DYNAMIC HOTKEYS AND LIVE MODE TOGGLES
+; SECTION 13: STOPWATCH
 ; =============================================================================
-; SECTION 14: AUXILIARY INPUT HANDLERS
+; SECTION 14: DYNAMIC HOTKEYS AND LIVE MODE TOGGLES
 ; =============================================================================
-; SECTION 15: STALL / ENGINE OFF/ON SIMULATION LOGIC
+; SECTION 15: AUXILIARY INPUT HANDLERS
 ; =============================================================================
-; SECTION 16: H-PATTERN TRANSMISSION LOGIC
+; SECTION 16: STALL / ENGINE OFF/ON SIMULATION LOGIC
 ; =============================================================================
-; SECTION 17: SEQUENTIAL TRANSMISSION LOGIC
+; SECTION 17: H-PATTERN TRANSMISSION LOGIC
 ; =============================================================================
-; SECTION 18: RECOVERY AND MANUAL SYNC
+; SECTION 18: SEQUENTIAL TRANSMISSION LOGIC
 ; =============================================================================
-; SECTION 19: MAIN LOOP
+; SECTION 19: RECOVERY AND MANUAL SYNC
 ; =============================================================================
-; SECTION 20: STARTUP
+; SECTION 20: MAIN LOOP
 ; =============================================================================
-; SECTION 21: HOTKEYS
+; SECTION 21: STARTUP
+; =============================================================================
+; SECTION 22: HOTKEYS
 ; =============================================================================
 
 
