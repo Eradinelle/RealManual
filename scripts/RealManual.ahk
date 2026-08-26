@@ -123,7 +123,7 @@ ReadInt(section, key, fallback) {
 ;
 ; The fallback value protects from broken or incomplete config files.
 ; =============================================================================
-ReadText(section, key, fallback) {
+ReadText(section, key, fallback := "") {
     global configFile
     return IniRead(configFile, section, key, fallback)
 } ; end readtext
@@ -146,7 +146,7 @@ enableStalling := ReadBool("Stalling", "EnableStalling", false) ; enables first-
 noInputStallDelayMs := ReadInt("Stalling", "NoInputStallDelayMs", 300) ; time first gear may remain clutch-out with insufficient throttle
 
 
-resetButton := ReadText("Hotkeys", "ResetButton", "1Joy10")
+resetButton := ReadText("Hotkeys", "ResetButton")
 pauseButton := ReadText("Hotkeys", "PauseButton", "")
 reloadButton := ReadText("Hotkeys", "ReloadButton", "^F9")
 helpButton := ReadText("Hotkeys", "HelpButton", "F7") ; displays current RealManual modes and hotkeys
@@ -157,11 +157,11 @@ toggleNeutralButton := ReadText("Hotkeys", "ToggleNeutralButton", "")
 toggleFiveGearModeButton := ReadText("Hotkeys", "ToggleFiveGearModeButton", "^F11") ; configurable 5-speed/6-speed toggle hotkey
 toggleShifterHandbrakeButton := ReadText("Hotkeys", "ToggleShifterHandbrakeButton", "F9")
 toggleShifterHandbrakeInvertButton := ReadText("Hotkeys", "ToggleShifterHandbrakeInvertButton", "+F9")
-IgnitionButton := ReadText("Hotkeys", "IgnitionButton", "1Joy24")
+ignitionButton := ReadText("Hotkeys", "IgnitionButton")
 toggleStallingButton := ReadText("Hotkeys", "ToggleStallingButton", "+F10")
 stopwatchButton := ReadText("Hotkeys", "StopwatchButton", "F6") ; starts, pauses, or resumes stopwatch
 stopwatchLapButton := ReadText("Hotkeys", "StopwatchLapButton", "+F6") ; freezes current lap and starts the next
-stopwatchClearButton := ReadText("Hotkeys", "StopwatchClearButton", "^F6") ; clears stopwatch and all visible tooltips
+stopwatchClearButton := ReadText("Hotkeys", "StopwatchClearButton", "^F6") ; clears stopwatch
 
 
 ; =============================================================================
@@ -183,9 +183,9 @@ stopwatchMaxLines := ReadInt("Stopwatch", "MaxLines", 10) ; maximum stopwatch li
 ; SECTION 6: CONFIG LOADING - AXES, THRESHOLDS, AND OUTPUT KEYS
 ; =============================================================================
 
-clutchAxis := ReadText("Axes", "ClutchAxis", "1JoyY")
-brakeAxis := ReadText("Sequential", "BrakeAxis", "1JoyZ") ; brake axis used for sequential reset heuristic
-handbrakeAxis := ReadText("Axes", "HandbrakeAxis", "2JoyR")
+clutchAxis := ReadText("Axes", "ClutchAxis")
+brakeAxis := ReadText("Sequential", "BrakeAxis") ; brake axis used for sequential reset heuristic
+handbrakeAxis := ReadText("Axes", "HandbrakeAxis")
 
 clutchThreshold := ReadInt("Thresholds", "ClutchThreshold", 40) ; clutch activates below this value
 brakeThreshold := ReadInt("Sequential", "BrakeThreshold", 55) ; brake threshold used for sequential reset heuristic
@@ -204,13 +204,13 @@ shiftDownKey := ReadText("OutputKeys", "ShiftDownKey", "q")
 ; SECTION 7: CONFIG LOADING - SHIFTER AND SEQUENTIAL SETTINGS
 ; =============================================================================
 
-gear1Button := ReadText("ShifterButtons", "Gear1Button", "1Joy13") ; physical first gear button, etc.
-gear2Button := ReadText("ShifterButtons", "Gear2Button", "1Joy14")
-gear3Button := ReadText("ShifterButtons", "Gear3Button", "1Joy15")
-gear4Button := ReadText("ShifterButtons", "Gear4Button", "1Joy16")
-gear5Button := ReadText("ShifterButtons", "Gear5Button", "1Joy17")
-gear6Button := ReadText("ShifterButtons", "Gear6Button", "1Joy18")
-reverseButton := ReadText("ShifterButtons", "ReverseButton", "1Joy19") ; physical reverse button
+gear1Button := ReadText("ShifterButtons", "Gear1Button") ; physical first gear button, etc.
+gear2Button := ReadText("ShifterButtons", "Gear2Button")
+gear3Button := ReadText("ShifterButtons", "Gear3Button")
+gear4Button := ReadText("ShifterButtons", "Gear4Button")
+gear5Button := ReadText("ShifterButtons", "Gear5Button")
+gear6Button := ReadText("ShifterButtons", "Gear6Button")
+reverseButton := ReadText("ShifterButtons", "ReverseButton") ; physical reverse button
 
 sequentialUpButtonNormal := ReadText("Sequential", "UpshiftButton", gear3Button) ; physical sequential upshift slot
 sequentialDownButtonNormal := ReadText("Sequential", "DownshiftButton", gear4Button) ; physical sequential downshift slot
@@ -220,8 +220,8 @@ enableBrakeHoldGearReset := ReadBool("Sequential", "EnableBrakeHoldGearReset", t
 brakeHoldResetMs := ReadInt("Sequential", "BrakeHoldResetMs", 2000) ; milliseconds brake must be held before virtual gear resets to first
 brakeAxisIncreasesWhenPressed := ReadBool("Sequential", "BrakeAxisIncreasesWhenPressed", true)
 enablePaddleSync := ReadBool("Sequential", "EnablePaddleSync", true) ; true = paddle shifts update virtual gear state
-paddleUpshiftButton := ReadText("Sequential", "PaddleUpshiftButton", "1Joy5") ; physical paddle upshift button
-paddleDownshiftButton := ReadText("Sequential", "PaddleDownshiftButton", "1Joy6") ; physical paddle downshift button
+paddleUpshiftButton := ReadText("Sequential", "PaddleUpshiftButton") ; physical paddle upshift button
+paddleDownshiftButton := ReadText("Sequential", "PaddleDownshiftButton") ; physical paddle downshift button
 
 enableShifterHandbrake := ReadBool("ShifterHandbrake", "EnableShifterHandbrake", false) ; true = use h-shifter slot as handbrake in sequential mode
 invertShifterHandbrake := ReadBool("ShifterHandbrake", "InvertShifterHandbrake", false) ; true = use inverted shifter handbrake slot
@@ -1333,7 +1333,7 @@ RegisterDynamicHotkeys() {
     global toggleTransmissionButton, toggleSequentialInvertButton, toggleFiveGearModeButton ; transmission hotkeys
     global toggleClutchButton, toggleNeutralButton ; clutch hotkeys
     global toggleShifterHandbrakeButton, toggleShifterHandbrakeInvertButton ; shifter handbrake hotkeys
-    global IgnitionButton, toggleStallingButton ; stalling
+    global ignitionButton, toggleStallingButton ; stalling
     global stopwatchButton, stopwatchLapButton, stopwatchClearButton ; stopwatch hotkeys
 
     HotIfWinActive("ahk_exe speed.exe") ; nfs focused
@@ -1382,8 +1382,8 @@ RegisterDynamicHotkeys() {
         Hotkey(toggleFiveGearModeButton, (*) => ToggleFiveGearMode(), "On")
     } ; end 5-speed
 
-    if Trim(IgnitionButton) != "" {
-        Hotkey(IgnitionButton, HandleIgnitionButton, "On")
+    if Trim(ignitionButton) != "" {
+        Hotkey(ignitionButton, HandleIgnitionButton, "On")
     } ; end ignition hotkey
 
     if Trim(toggleStallingButton) != "" {
@@ -2420,7 +2420,6 @@ HandleSequentialTransmission(clutchPressed) {
 ;
 ; Its only job is to keep virtualGear aligned with shifts caused outside of
 ; RealManual's normal sequential shifter logic.
-;
 ; =============================================================================
 HandlePaddleSync() {
     global transmissionIsSequential, enablePaddleSync, virtualGear, maxForwardGear ; sequential mode and tracked gear
@@ -2462,7 +2461,6 @@ HandlePaddleSync() {
 ; unknown gear while RealManual assumes first gear.
 ;
 ; Number keys 1-6 and N call this function.
-;
 ; =============================================================================
 SyncGear(gearNumber) {
     global enableSyncHotkeys, virtualGear, pendingGear, lastClutchPressed, clutchNeutralSent, maxForwardGear ; sync state
@@ -2618,7 +2616,7 @@ SetTimer(MainLoop, scanIntervalMs) ; starts main scan loop
 ; =============================================================================
 
 #HotIf IsNFSFocused()  ; makes the following hotkeys active only while nfs is focused
-$1::SyncGear(1)  ; syncs first gear only while nfs is focused
+$1::SyncGear(1)
 $2::SyncGear(2)
 $3::SyncGear(3)
 $4::SyncGear(4)
