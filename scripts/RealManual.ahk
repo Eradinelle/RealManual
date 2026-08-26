@@ -177,6 +177,7 @@ scanIntervalMs := ReadInt("Timing", "ScanIntervalMs", 5) ; milliseconds between 
 throttleBlipMs := ReadInt("Stalling", "ThrottleBlipMs", 120) ; duration of simulated throttle blips
 stopwatchRefreshMs := ReadInt("Stopwatch", "RefreshMs", 50) ; milliseconds between stopwatch display updates
 stopwatchMaxLines := ReadInt("Stopwatch", "MaxLines", 10) ; maximum stopwatch lines displayed at once
+brakeResetStallGraceMs := ReadInt("Stalling", "BrakeResetStallGraceMs", 1000) ; stall protection after sequential brake-reset reverse release
 
 
 ; =============================================================================
@@ -188,7 +189,7 @@ brakeAxis := ReadText("Sequential", "BrakeAxis") ; brake axis used for sequentia
 handbrakeAxis := ReadText("Axes", "HandbrakeAxis")
 
 clutchThreshold := ReadInt("Thresholds", "ClutchThreshold", 40) ; clutch activates below this value
-brakeThreshold := ReadInt("Sequential", "BrakeThreshold", 55) ; brake threshold used for sequential reset heuristic
+brakeThreshold := ReadInt("Sequential", "BrakeThreshold", 70) ; brake threshold used for sequential reset heuristic
 handbrakeThreshold := ReadInt("Thresholds", "HandbrakeThreshold", 35) ; handbrake activates above this value
 
 neutralKey := ReadText("OutputKeys", "NeutralKey", "n")
@@ -255,6 +256,8 @@ reverseHeld := false ; tracks reverse key hold state
 handbrakeHeld := false ; tracks handbrake key hold state
 brakeHoldStartTime := 0 ; stores when brake hold began for sequential reset heuristic
 brakeHoldResetTriggered := false ; prevents repeated gear resets during one brake hold
+brakeResetStallGraceActive := false ; true after sequential brake-hold gear reset triggers
+brakeResetReleaseTime := 0 ; time brake was released after the reset
 engineStalled := false ; true while transmission output is locked by stall simulation
 stallDetectionArmed := false ; becomes true after clutch is pressed while first gear is selected
 lastStallNeutralSendTime := 0 ; controls periodic neutral keepalive while stalled
@@ -267,6 +270,7 @@ stopwatchStartTime := 0 ; A_TickCount when current running period began
 stopwatchAccumulatedMs := 0 ; elapsed time preserved across pause/resume
 stopwatchLaps := [] ; stores completed lap durations
 stopwatchToolTipId := 2 ; keeps stopwatch separate from normal RealManual tooltip #1
+
 
 
 ; =============================================================================
@@ -1909,6 +1913,12 @@ HandleStallDetection(clutchPressed) {
         return
     } ; end stalled guard
 
+    if ShouldSuppressStallForBrakeReset() {
+        stallDetectionArmed := false
+        noInputStallStartTime := 0
+        return
+    } ; end sequential brake-reset stall protection
+
     if !IsFirstGearSelectedForStall() {
         stallDetectionArmed := false
         noInputStallStartTime := 0
@@ -2092,6 +2102,64 @@ HandleIgnitionButton(*) {
 } ; end handleignitionbutton
 
 ; =============================================================================
+; ShouldSuppressStallForBrakeReset()
+; -----------------------------------------------------------------------------
+; Protects sequential-mode reversing from first-gear stall detection after the
+; brake-hold gear-reset heuristic has forced virtual gear 1.
+;
+; Protection has two phases:
+;
+;   1. Brake still held:
+;      suppress stalling indefinitely while reverse/brake input remains active.
+;
+;   2. Brake released:
+;      start BrakeResetStallGraceMs and continue suppressing stalling until the
+;      configured grace period expires.
+;
+; Returns true while stall detection should be skipped.
+; =============================================================================
+ShouldSuppressStallForBrakeReset() {
+    global transmissionIsSequential, enableBrakeHoldGearReset
+    global brakeResetStallGraceActive, brakeResetReleaseTime
+    global brakeResetStallGraceMs
+
+    if !brakeResetStallGraceActive {
+        return false
+    } ; end inactive guard
+
+    if !transmissionIsSequential || !enableBrakeHoldGearReset {
+        brakeResetStallGraceActive := false
+        brakeResetReleaseTime := 0
+        return false
+    } ; end feature-state guard
+
+    if IsBrakePressedForSequentialReset() {
+        ; Reverse/brake is still being held. The grace countdown must not begin
+        ; yet, regardless of how long you reverse
+        brakeResetReleaseTime := 0
+        return true
+    } ; end brake-held protection
+
+    if brakeResetReleaseTime = 0 {
+        ; first scan after brake release starts the grace period
+        brakeResetReleaseTime := A_TickCount
+        return true
+    } ; end release detection
+
+    graceMs := Max(0, brakeResetStallGraceMs)
+
+    if A_TickCount - brakeResetReleaseTime < graceMs {
+        return true
+    } ; end post-release grace period
+
+    ; grace period is complete. Normal stall behavior resumes
+    brakeResetStallGraceActive := false
+    brakeResetReleaseTime := 0
+
+    return false
+} ; end shouldsuppressstallforbrakereset
+
+; =============================================================================
 ; SECTION 17: H-PATTERN TRANSMISSION LOGIC
 ; =============================================================================
 
@@ -2195,13 +2263,19 @@ HandleHPatternTransmission(clutchPressed) { ; processes h-pattern mode
 ; Implements a recovery heuristic for sequential mode.
 ;
 ; Timer Logic:
-;   brake pressed -> store brakeHoldStartTime -> measure elapsed time -> elapsed >= brakeHoldResetMs -> trigger reset once
+;   brake pressed -> store brakeHoldStartTime -> measure elapsed time
+;   -> elapsed >= brakeHoldResetMs -> trigger reset once
 ;
 ; Reset Actions:
 ;   virtualGear := 1
 ;   SendGearToMod(1)
 ;
 ; Both the script state and game state are updated together to prevent desync.
+;
+; Stall Protection:
+;   Once the reset fires, stall detection is suppressed while the brake remains
+;   held. After the brake is released, a short grace period begins before
+;   normal first-gear stall detection is allowed again.
 ;
 ; One-Shot Protection:
 ;   brakeHoldResetTriggered prevents repeated resets while the brake remains
@@ -2215,31 +2289,49 @@ HandleHPatternTransmission(clutchPressed) { ; processes h-pattern mode
 ; selected gear position directly from the physical shifter.
 ; =============================================================================
 HandleSequentialBrakeHoldReset() {
-    global transmissionIsSequential, enableBrakeHoldGearReset, brakeHoldResetMs ; feature settings
-    global brakeHoldStartTime, brakeHoldResetTriggered, virtualGear ; timer and gear state
+    global transmissionIsSequential, enableBrakeHoldGearReset, brakeHoldResetMs
+    global brakeHoldStartTime, brakeHoldResetTriggered, virtualGear
+    global brakeResetStallGraceActive, brakeResetReleaseTime
 
-    if !transmissionIsSequential || !enableBrakeHoldGearReset { ; only runs this heuristic in sequential mode when enabled
-        brakeHoldStartTime := 0 ; clears timer when feature is inactive
-        brakeHoldResetTriggered := false ; clears one-shot trigger when feature is inactive
-        return ; skip reset logic
+    if !transmissionIsSequential || !enableBrakeHoldGearReset {
+        brakeHoldStartTime := 0
+        brakeHoldResetTriggered := false
+
+        ; Brake-reset stall protection is meaningless outside this feature.
+        brakeResetStallGraceActive := false
+        brakeResetReleaseTime := 0
+
+        return
     } ; end feature gate
 
     if IsBrakePressedForSequentialReset() {
-        if brakeHoldStartTime = 0 { ; checks whether this is the first scan of the brake hold
-            brakeHoldStartTime := A_TickCount ; stores start time in milliseconds
+        if brakeHoldStartTime = 0 {
+            brakeHoldStartTime := A_TickCount
         } ; end start-time branch
 
-        heldMs := A_TickCount - brakeHoldStartTime ; calculates how long brake has been held
+        heldMs := A_TickCount - brakeHoldStartTime
 
-        if heldMs >= brakeHoldResetMs && !brakeHoldResetTriggered { ; checks whether hold duration passed threshold once
-            virtualGear := 1 
+        if heldMs >= brakeHoldResetMs && !brakeHoldResetTriggered {
+            virtualGear := 1
             SendGearToMod(1)
-            brakeHoldResetTriggered := true ; prevents repeated resets during same brake hold
+
+            brakeHoldResetTriggered := true
+
+            ; The reset has occurred while the brake is being used for reverse.
+            ; Suppress stall detection until the brake is released and the
+            ; post-release grace period has elapsed.
+            brakeResetStallGraceActive := true
+            brakeResetReleaseTime := 0
+
             ShowToolTipMessage("sequential gear reset to 1 after brake hold")
         } ; end reset trigger branch
-    } else { ; brake is not held past threshold
-        brakeHoldStartTime := 0 ; clears brake hold timer
-        brakeHoldResetTriggered := false ; allows reset on next brake hold
+    } else {
+        brakeHoldStartTime := 0
+        brakeHoldResetTriggered := false
+
+        ; Don't clear brakeResetStallGraceActive here
+        ; The brake release is what begins the post-reset grace period,
+        ; which is handled by ShouldSuppressStallForBrakeReset().
     } ; end brake state branch
 } ; end handlesequentialbrakeholdreset
 
