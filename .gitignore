@@ -1,5 +1,6 @@
 # RealManual runtime files
 startup_log.txt
+stats.txt
 
 # Compiled dependency distributed through Releases
 scripts/MW2005-HShifter.asi

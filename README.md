@@ -1,12 +1,16 @@
 # RealManual
 
-RealManual is an AutoHotkey v2 transmission and input bridge for **Need for Speed: Most Wanted (2005)**. It adds support for physical H-pattern and sequential shifters, clutch behavior, handbrakes, manual gear synchronization, and optional driving-simulation features that the original game does not provide natively.
+RealManual is an AutoHotkey v2 transmission and input bridge for **Need for Speed: Most Wanted (2005)**. It adds physical H-pattern and sequential shifting, clutch behavior, handbrakes, manual synchronization, reverse assistance, simulated stalling, statistics, a stopwatch, and several quality-of-life utilities that the original game does not provide natively.
 
-RealManual is designed around the Windows joystick interface and works together with a modified build of **MW2005-HShifter** to provide direct forward-gear and neutral selection.
+RealManual reads controller state through the Windows joystick interface and works together with **MW2005-HShifter** to provide direct reverse, neutral, and forward-gear selection.
 
+> **Current version:** 1.2.0
+>
 > **Game compatibility:** MW2005-HShifter currently targets **Need for Speed: Most Wanted 1.3 Black Edition**.
 >
 > **Primary tested hardware:** Logitech G29 wheel, pedals and H-pattern shifter using Logitech Gaming Software (LGS), plus a separate USB handbrake. Need for Speed: Most Wanted (2005) relies on DirectInput-compatible controller input. RealManual itself reads controller state through AutoHotkey's joystick interface, which depends on Windows correctly enumerating the device.
+
+See [`CHANGELOG.md`](CHANGELOG.md) for the complete 1.2.0 change history.
 
 ---
 
@@ -16,10 +20,10 @@ RealManual is designed around the Windows joystick interface and works together 
 - Need for Speed: Most Wanted (2005), version 1.3 Black Edition
 - AutoHotkey v2
 - An ASI loader capable of loading `.asi` plugins from the NFSMW game directory or `scripts` directory
-- The modified RealManual or original build of MW2005-HShifter
+- MW2005-HShifter, preferably the build included with the RealManual release
 - A wheel, pedals, shifter, handbrake (optional), or other controller hardware that is visible through the Windows joystick interface
 
-RealManual does not replace the game's normal steering, accelerator, brake, menu, or interaction controls. Those controls still need to be configured inside NFSMW itself.
+RealManual does not replace the game's normal steering, accelerator, brake, menu, camera, nitrous, speedbreaker, or other ordinary controls. Those still need to be configured inside NFSMW itself.
 
 ---
 
@@ -46,13 +50,22 @@ RealManual does not replace the game's normal steering, accelerator, brake, menu
        └── MW2005-HShifter.asi
    ```
 
-5. Configure `config.ini` for your hardware/preferences. See [Configuration](#configuration).
+   RealManual may also create:
 
-6. Run `RealManual.ahk` **before starting the game**.
+   ```text
+   startup_log.txt   # when WriteStartupLog=1
+   stats.txt         # persistent session/all-time statistics
+   ```
 
-7. Start Need for Speed: Most Wanted normally.
+5. Configure `config.ini` for your hardware and preferences. See [Configuration](#configuration).
 
-RealManual only processes gameplay inputs while `speed.exe` is the active foreground application.
+6. Run `RealManual.ahk`.
+
+   Starting RealManual before NFSMW is still the simplest workflow, but 1.2.0 can also attach to an already-running `speed.exe` process.
+
+7. Start Need for Speed: Most Wanted normally if it is not already running.
+
+RealManual only processes gameplay inputs while `speed.exe` is the active foreground application. When NFSMW is unfocused, RealManual reduces its polling rate; while RealManual is paused or its menu automation is active, the normal gameplay polling timer is stopped.
 
 ### MW2005-HShifter
 
@@ -60,7 +73,7 @@ RealManual uses a modified build of MW2005-HShifter maintained here:
 
 https://github.com/Eradinelle/MW2005-HShifter
 
-The RealManual release should be used with the version of `MW2005-HShifter.asi` included in that release. The original mod works too, but I found my changes to improve stability for RealManual.
+The RealManual release should be used with the version of `MW2005-HShifter.asi` included in that release. The original mod can also provide the direct-gear protocol, but the RealManual-maintained build is the version this project is developed and tested against.
 
 ---
 
@@ -68,12 +81,30 @@ The RealManual release should be used with the version of `MW2005-HShifter.asi` 
 
 RealManual reads its settings from `config.ini`, which must remain in the same directory as `RealManual.ahk`.
 
+Boolean settings use:
+
+```text
+0 = disabled / false
+1 = enabled / true
+```
+
+Hotkeys can use normal AutoHotkey v2 modifiers:
+
+```text
+^ = Ctrl
++ = Shift
+! = Alt
+# = Win
+```
+
+Leave a configurable hotkey value blank to disable that hotkey.
+
 ### 1. Verify the hardware in Windows first
 
 Before editing RealManual mappings:
 
 1. Press `Win + R`.
-2. Enter: joy.cpl
+2. Enter: `joy.cpl`
 3. Select the wheel/controller and open **Properties**.
 4. Confirm that the wheel, pedals, shifter buttons, paddles, and other required controls produce visible input.
 
@@ -81,11 +112,16 @@ If the device is missing from `joy.cpl`, or the Properties/Test page is blank or
 
 ### 2. Run the RealManual Input Detector
 
-Run: RealManual_InputDetector.ahk
+Run:
+
+```text
+RealManual_InputDetector.ahk
+```
 
 The detector scans the Windows joystick slots and displays each detected device, its axes, and currently pressed buttons.
 
 Typical names look like:
+
 ```text
 1JoyX
 1JoyY
@@ -101,6 +137,7 @@ The number before `Joy` is the Windows/AutoHotkey joystick number. The suffix id
 Move or press **one control at a time** and watch which value changes.
 
 For example:
+
 ```text
 Clutch pedal     -> 1JoyY
 First gear       -> 1Joy13
@@ -109,31 +146,76 @@ Reverse gate     -> 1Joy19
 USB handbrake    -> 2JoyR
 ```
 
-
 The detector supports joystick slots 1-16 and scans buttons 1-32. `F9` reloads the detector and `Esc` closes it.
 
-### 3. Update `config.ini`
+### 3. Understand the configuration sections
+
+RealManual 1.2.0 uses the following sections:
+
+| Section | Purpose |
+| --- | --- |
+| `[General]` | Startup log and tooltip behavior |
+| `[Hotkeys]` | Runtime controls, stopwatch/statistics controls, menu/capture utilities |
+| `[Transmission]` | Startup transmission mode and 5/6-speed limit |
+| `[Clutch]` | Clutch behavior, axis and threshold |
+| `[Pedals]` | Shared gas/brake axis and brake-direction thresholds |
+| `[GameKeys]` | Keyboard actions configured inside NFSMW |
+| `[HPattern]` | Physical 1-6 and reverse shifter positions |
+| `[Sequential]` | Sequential lever, paddles, brake reset and queued-shift timing |
+| `[Handbrake]` | Analog handbrake and optional sequential shifter-slot handbrake |
+| `[Stalling]` | Simulated engine stall/restart behavior |
+| `[ReverseAssist]` | Optional digital reverse-key assistance |
+| `[Timing]` | Normal key hold and focused polling interval |
+| `[Stopwatch]` | Stopwatch refresh and line limit |
+| `[Statistics]` | Persistent shift/stall/race-restart tracking |
+
+### 4. Configure the important hardware mappings
 
 Use the identifiers reported by the Input Detector.
 
-The most important hardware mappings are:
+| Config setting | Section | Purpose |
+| --- | --- | --- |
+| `ClutchAxis` | `[Clutch]` | Physical clutch pedal axis |
+| `CombinedPedalAxis` | `[Pedals]` | Shared gas/brake axis used by brake reset, Reverse Assist, and stall logic |
+| `HandbrakeAxis` | `[Handbrake]` | Optional analog USB handbrake axis |
+| `Gear1Button` through `Gear6Button` | `[HPattern]` | Physical H-pattern forward gears |
+| `ReverseButton` | `[HPattern]` | Physical reverse gate |
+| `SequentialUpshiftButton` | `[Sequential]` | Sequential upshift shifter position |
+| `SequentialDownshiftButton` | `[Sequential]` | Sequential downshift shifter position |
+| `PaddleUpshiftButton` | `[Sequential]` | Native paddle upshift used for tracked-gear synchronization |
+| `PaddleDownshiftButton` | `[Sequential]` | Native paddle downshift used for tracked-gear synchronization |
+| `ShifterHandbrakeButton` | `[Handbrake]` | Optional H-shifter slot used as handbrake in sequential mode |
+| `ForwardKey` | `[GameKeys]` | NFSMW accelerate/forward keyboard binding |
+| `ReverseKey` | `[GameKeys]` | NFSMW brake/reverse keyboard binding used by Reverse Assist |
+| `HandbrakeKey` | `[GameKeys]` | NFSMW handbrake keyboard binding |
+| `ShiftUpKey` | `[GameKeys]` | NFSMW sequential upshift key and physical-key synchronization source |
+| `ShiftDownKey` | `[GameKeys]` | NFSMW sequential downshift key and physical-key synchronization source |
 
-| Config setting | Purpose |
-| --- | --- |
-| `ClutchAxis` | Clutch pedal axis |
-| `HandbrakeAxis` | Optional analog USB handbrake axis |
-| `Gear1Button` through `Gear6Button` | Physical H-pattern forward gears |
-| `ReverseButton` | Physical reverse gate |
-| `UpshiftButton` | Sequential upshift shifter position |
-| `DownshiftButton` | Sequential downshift shifter position |
-| `BrakeAxis` | Brake/combined pedal axis used by reverse and sequential reset logic |
-| `PaddleUpshiftButton` | Native paddle upshift button used for virtual-gear synchronization |
-| `PaddleDownshiftButton` | Native paddle downshift button used for virtual-gear synchronization |
-| Hotkey entries | Keyboard or joystick buttons used for live controls, reset, ignition, pause, etc. |
+### 5. Reserved MW2005-HShifter protocol keys
+
+RealManual and MW2005-HShifter reserve these physical keyboard keys:
+
+```text
+0   = reverse
+N   = neutral
+1-6 = forward gears
+```
+
+These are fixed protocol bindings.
+
+RealManual 1.2.0 checks configured bindings at startup. Conflicting bindings are blocked/disabled and reported in `startup_log.txt`.
+
+The fixed protocol keys can also be used for RealManual's manual direct-gear synchronization:
+
+```text
+0   -> reverse
+N   -> neutral
+1-6 -> corresponding forward gear
+```
 
 ### Expected pedal direction
 
-RealManual's default logic expects the following normalized behavior:
+RealManual's default/tested logic expects:
 
 | Input | Released/resting | Activated |
 | --- | ---: | ---: |
@@ -141,10 +223,11 @@ RealManual's default logic expects the following normalized behavior:
 | Analog handbrake | low | high |
 | Combined gas/brake axis | near center | gas moves one direction, brake moves the opposite direction |
 
-### Tested Axis Configuration
+The direction of the **brake** side of the combined axis is configurable through `BrakeAxisIncreasesWhenPressed`.
 
-The primary tested setup is a Logitech G29 using Logitech Gaming Software (LGS),
-with **combined gas/brake pedals enabled**, plus a separate USB handbrake.
+### Tested axis configuration
+
+The primary tested setup is a Logitech G29 using Logitech Gaming Software (LGS), with **combined gas/brake pedals enabled**, plus a separate USB handbrake.
 
 - **Gas**
   - Axis: `1JoyZ`
@@ -168,23 +251,45 @@ with **combined gas/brake pedals enabled**, plus a separate USB handbrake.
 
 In this configuration, gas and brake share the same centered axis.
 
-Relevant settings:
-   [Axes]
-   ClutchAxis=1JoyY
-   HandbrakeAxis=2JoyR
+Relevant 1.2.0 settings:
 
-   [Sequential]
-   BrakeAxis=1JoyZ
-   BrakeAxisIncreasesWhenPressed=1
+```ini
+[Clutch]
+ClutchAxis=1JoyY
+ClutchThreshold=40
 
-   [Stalling]
-   CombinedPedalCenter=50
+[Pedals]
+CombinedPedalAxis=1JoyZ
+CombinedPedalCenter=50
+BrakeAxisIncreasesWhenPressed=1
+BrakeActiveThreshold=55
+
+[Handbrake]
+HandbrakeAxis=2JoyR
+HandbrakeThreshold=20
+```
+
+The harder sequential brake-reset threshold is configured separately:
+
+```ini
+[Sequential]
+BrakeResetThreshold=70
+```
+
+Reverse Assist also has a separate **engagement** threshold:
+
+```ini
+[ReverseAssist]
+EngageBrakeThreshold=60
+```
+
+Once Reverse Assist is already active, normal brake release uses `[Pedals] BrakeActiveThreshold`.
 
 If you cannot detect your hardware with older software, see [Using newer or incompatible hardware through middleware](#using-newer-or-incompatible-hardware-through-middleware).
 
 ### Configure the game itself
 
-RealManual is a transmission/input bridge, not a complete wheel-input replacement.
+RealManual is a transmission/input bridge.
 
 Inside NFSMW, bind the controls that the game can read directly, including:
 
@@ -194,18 +299,287 @@ Inside NFSMW, bind the controls that the game can read directly, including:
 - normal menu/navigation controls
 - camera/nitrous/speedbreaker and other gameplay buttons you use
 
-Also make sure the keyboard output keys configured in `config.ini` still match the corresponding game actions. In particular, the configured forward, reverse/brake, handbrake, sequential upshift, and sequential downshift keys must perform those actions in NFSMW.
+Also make sure the keyboard output keys under `[GameKeys]` match the corresponding keyboard controls inside NFSMW.
 
-The direct gear and neutral output keys are consumed by MW2005-HShifter.
+The default 1.2.0 values are:
+
+```ini
+[GameKeys]
+ForwardKey=w
+ReverseKey=s
+HandbrakeKey=Space
+ShiftUpKey=e
+ShiftDownKey=q
+```
+
+`ShiftUpKey` and `ShiftDownKey` are also monitored as **physical keyboard inputs** so RealManual can keep its tracked gear synchronized when you shift with the game's native keyboard controls. RealManual ignores its own synthetic shift outputs for this synchronization path.
+
+The direct reverse/neutral/forward protocol uses the fixed `0`, `N`, and `1`-`6` keys described above.
+
+### Default hotkeys
+
+The included 1.2.0 config uses:
+
+| Default | Action |
+| --- | --- |
+| `F1` | Show RealManual hotkey/status help |
+| `F2` | Reset/synchronize transmission state |
+| `F3` | Pause/resume RealManual |
+| `Ctrl+F3` | Reload RealManual/config |
+| `F4` | Toggle H-pattern / sequential mode |
+| `Shift+F4` | Invert sequential shifter direction |
+| `Ctrl+F4` | Toggle 5-speed / 6-speed limit |
+| `F5` | Toggle clutch requirement |
+| `Shift+F5` | Toggle clutch-to-neutral |
+| `F6` | Toggle shifter-slot handbrake |
+| `F7` | Toggle simulated stalling |
+| `1Joy24` | Ignition / engine restart |
+| `F8` | Stopwatch start/pause/resume |
+| `Shift+F8` | Stopwatch lap |
+| `Ctrl+F8` | Clear stopwatch |
+| `F9` | Toggle shift statistics display |
+| `Shift+F9` | Toggle stall statistics display |
+| `Ctrl+F9` | Toggle race-restart statistics display |
+| `F10` | Record one race restart |
+| `F11` | Run/cancel maximum-video-settings automation |
+| blank by default | Save NVIDIA Instant Replay |
+| blank by default | Capture NVIDIA screenshot |
+
+Live feature toggles change the current running state only. They don't write the new value back to `config.ini`; reloading RealManual restores the saved configuration.
+
+### Shifter handbrake
+
+`EnableShifterHandbrake` allows one H-pattern shifter position to act as a handbrake while RealManual is in sequential mode.
+
+The default config recommends second gear:
+
+```ini
+[Handbrake]
+EnableShifterHandbrake=0
+ShifterHandbrakeButton=1Joy14
+```
+
+The default sequential lever uses third/fourth gear positions, so second gear avoids overlap.
+
+If the shifter-handbrake slot overlaps either configured sequential shift position, RealManual gives the handbrake ownership of the conflicting shifter arrangement while that feature is enabled. For normal sequential-shifter use, choose a non-overlapping slot.
+
+### Sequential brake-hold reset
+
+Sequential mode can reset its tracked gear to first after sustained hard braking:
+
+```ini
+[Sequential]
+EnableBrakeHoldGearReset=1
+BrakeHoldResetMs=2000
+BrakeResetThreshold=70
+```
+
+This is a recovery heuristic for cases where the game's actual sequential gear may no longer match RealManual's tracked gear.
+
+The reset:
+
+- establishes first gear as the new tracked target;
+- clears stale queued sequential shifts;
+- requires the sequential lever to return to neutral before creating another shift;
+- preserves clutch-to-neutral if the clutch is intentionally holding the game in neutral;
+- coordinates with Reverse Assist and stall-protection timing.
+
+### Reverse Assist
+
+Reverse Assist is intended to improve reversing when the physical brake pedal is too stiff or difficult to hold far enough for strong reverse acceleration.
+
+When enabled, RealManual can hold the configured NFSMW `ReverseKey` digitally while the car is in an eligible reverse state.
+
+```ini
+[ReverseAssist]
+EnableReverseAssist=1
+EngageBrakeThreshold=60
+```
+
+Behavior:
+
+- the brake must first cross `EngageBrakeThreshold` to engage the assist;
+- once active, it stays active until the pedal falls below the normal `[Pedals] BrakeActiveThreshold`;
+- pressing the clutch immediately disables the assist;
+- in H-pattern mode, the physical shifter must be in reverse and the direct reverse command must have succeeded;
+- in sequential mode, Reverse Assist cooperates with the sequential brake-hold reset state.
+
+This feature still uses the shared combined gas/brake axis.
+
+### Stalling / engine simulation
+
+The optional stall system simulates an engine-off state using gear, clutch, and pedal state.
+
+```ini
+[Stalling]
+EnableStalling=1
+ClutchReleaseThreshold=60
+ThrottleThreshold=15
+RestartClutchThreshold=15
+NeutralResendMs=50
+ThrottleBlipMs=500
+NoInputStallDelayMs=700
+BrakeResetStallGraceMs=100
+```
+
+When enabled, RealManual can stall in FIRST gear when:
+
+- the clutch is released too far without sufficient throttle; or
+- first gear remains coupled at low/no throttle long enough.
+
+While the simulated engine is off:
+
+- RealManual repeatedly maintains neutral;
+- the handbrake is forced on;
+- ordinary transmission behavior is blocked until restart.
+
+Restart behavior:
+
+- the physical H-pattern shifter must be in neutral (I know you can start a car in any gear, but this is good practice);
+- if `RequireClutch=1`, the clutch must also be pressed deeply enough to satisfy `RestartClutchThreshold`;
+- RealManual sends a simulated throttle blip and resumes from neutral.
+
+The stall model is still a simulation; it does not read actual NFSMW RPM, vehicle speed, engine torque, or clutch torque from game memory.
+
+### Statistics
+
+Version 1.2.0 adds persistent statistics for:
+
+- shifts;
+- simulated stalls;
+- manually recorded race restarts.
+
+Enable categories independently:
+
+```ini
+[Statistics]
+TrackShifts=1
+TrackStalls=1
+TrackRaceRestarts=1
+ClearAllTimeOnStartup=0
+```
+
+RealManual stores statistics in:
+
+```text
+stats.txt
+```
+
+#### Session definition
+
+A **Session** is the lifetime of one NFSMW `speed.exe` process.
+
+- Starting/reloading RealManual while the same NFSMW process is still running resumes the same session.
+- When that `speed.exe` process ends or is replaced, RealManual transfers the completed Session counters into AllTime.
+- The next NFSMW process begins a fresh Session.
+- Session counters are persisted while the game is running so a RealManual reload does not discard the current session.
+
+The on-screen statistics panel shows **Session** values. Persistent AllTime values remain in `stats.txt`.
+
+Race restarts are not inferred automatically; use `RaceRestartButton` to record one.
+
+`ClearAllTimeOnStartup=1` is a one-shot maintenance option. RealManual clears the AllTime counters and resets that config value back to `0`.
+
+### Stopwatch and shared overlays
+
+RealManual includes a persistent in-game stopwatch with:
+
+- start;
+- pause/resume;
+- laps;
+- clear/reset;
+- configurable refresh interval;
+- configurable maximum displayed lines.
+
+```ini
+[Stopwatch]
+StopwatchRefreshMs=50
+StopwatchMaxLines=10
+```
+
+The stopwatch and statistics panel use separate tooltip IDs and can be displayed at the same time. The overlay that was activated first keeps the primary position; the second is placed beside it.
+
+### Maximum video settings automation
+
+`MaxVideoSettingsButton` runs a cancellable keyboard macro that navigates NFSMW's menus and applies the author's maximum-video-settings sequence.
+
+This is intentionally a very specific utility.
+
+It is designed to be started:
+
+- from the **main menu**;
+- with the menu selection positioned on **Career Mode** (just having entered the game);
+- with the video settings **not already maxed in both Basic and Advanced**.
+
+Press the hotkey again while the sequence is running to cancel it.
+
+The macro is focus-guarded and pauses RealManual's normal gameplay polling while it owns the menu input sequence.
+
+If your starting selection or existing settings state differs, do not assume the sequence will land on the intended options.
+
+It is meant to max LEVEL OF DETAIL in BASIC and:
+   FULL SCREEN ANTI-ALIASING
+   TEXTURE FILTERING
+   WORLD LEVEL OF DETAIL
+   ROAD REFLECTION DETAIL
+   SHADOW DETAIL
+   CAR GEOMETRY DETAIL
+   CAR REFLECTION DETAIL
+   CAR REFLECTION UPDATED RATE
+   and TURN ON VSYC
+   in ADVANCED
+
+If BASIC or ADVANCED settings don't prompt you to save on ESC, sequence will fail.
+
+### NVIDIA capture hotkeys
+
+Two optional hotkeys can map controller/wheel buttons to NVIDIA Overlay capture shortcuts:
+
+```ini
+SaveInstantReplayButton=
+CaptureScreenshotButton=
+```
+
+When configured:
+
+- `SaveInstantReplayButton` sends NVIDIA Overlay's `Alt+F10`;
+- `CaptureScreenshotButton` sends NVIDIA Overlay's `Alt+F1`.
+
+They are blank by default.
+
+These utilities assume those NVIDIA Overlay shortcuts are still configured to their standard values.
+
+### Startup validation and log
+
+RealManual 1.2.0 performs a broader startup validation pass covering:
+
+- missing config values;
+- invalid boolean syntax;
+- invalid integer syntax;
+- numeric ranges;
+- clutch/brake threshold relationships;
+- duplicate H-pattern/sequential/paddle mappings;
+- duplicate dynamic hotkeys;
+- malformed hotkeys;
+- conflicts with the fixed MW2005-HShifter protocol;
+- configured hardware availability.
+
+If `WriteStartupLog=1`, the report is written to:
+
+```text
+startup_log.txt
+```
+
+Use the tray-menu **Open Validation Log** command when diagnosing a configuration problem.
 
 ### Device numbers can change
 
 Windows may assign a different joystick number after:
 
-- changing USB ports
-- reinstalling a driver
-- adding/removing another controller
-- repairing joystick registry entries
+- changing USB ports;
+- reinstalling a driver;
+- adding/removing another controller;
+- repairing joystick registry entries.
 
 If an input suddenly stops working after a hardware change, run the Input Detector again and verify that `1Joy...`, `2Joy...`, etc. still match `config.ini`.
 
@@ -213,39 +587,79 @@ If an input suddenly stops working after a hardware change, run the Input Detect
 
 ## Features
 
-- Physical H-pattern transmission support for gears 1-6, reverse and neutral
+### Transmission
+
+- Physical H-pattern support for gears 1-6, reverse, and neutral
 - Configurable 5-speed / 6-speed gearbox limit
-- Sequential transmission mode using configurable shifter positions
-- Runtime switching between H-pattern and sequential transmission modes
+- Sequential mode using configurable H-shifter positions
+- Runtime switching between H-pattern and sequential modes
 - Configurable sequential shifter inversion
-- Optional clutch requirement for gear changes
+- Optional clutch requirement
 - Optional clutch-to-neutral behavior
 - Queued sequential shifts while the clutch is held
-- Virtual gear tracking for sequential mode
-- H-pattern-to-sequential gear-state synchronization
+- Direct-gear and virtual-gear synchronization
+- Manual reverse/neutral/1-6 synchronization hotkeys
 - Native paddle-shift synchronization
-- Manual gear synchronization/recovery hotkeys
-- Sequential brake-hold gear reset/recovery
-- Optional analog USB handbrake support
-- Optional shifter-slot handbrake for sequential mode
-- Independent shifter-handbrake inversion
-- First-gear stall simulation:
-   - Stall detection when the clutch is released without sufficient throttle
-   - Stall detection when first gear is left engaged without clutch or throttle input
-   - Forced neutral and handbrake while the simulated engine is off
-   - Ignition hotkey for manual engine shutoff and restart
-   - Restart requires using physical neutral and clutch position
-   - Stall/restart throttle-blip effects
-- Runtime feature toggles through configurable hotkeys
-- Optional status tooltips
-- Config reload from the tray menu
-- Automatic release of held output keys when the game loses focus
-- Startup configuration validation
+- Native physical keyboard shift synchronization
+- Sequential brake-hold first-gear recovery/reset
+- Fail-closed H-pattern and sequential reads with explicit neutral/released re-arming
+
+### Handbrake and reverse
+
+- Optional analog USB handbrake
+- Optional H-shifter-slot handbrake in sequential mode
+- Combined handbrake arbitration between analog, shifter-slot, and simulated engine-off requests
+- Optional Reverse Assist for stronger digital reverse-key output
+- Separate reverse-assist engagement and normal brake-release thresholds
+
+### Engine simulation
+
+- First-gear clutch/throttle stall detection
+- First-gear sustained low-throttle stall detection
+- Forced neutral and handbrake while the simulated engine is off
+- Manual ignition shutoff/restart
+- Physical-neutral restart requirement
+- Optional clutch restart requirement
+- Stall/restart throttle-blip effects
+- Brake-reset stall-grace coordination
+- New-game stall suppression until the first accepted driver shift
+
+### Statistics and timing
+
+- Persistent per-NFSMW-process Session statistics
+- Persistent AllTime statistics
+- Shift tracking
+- Stall tracking
+- Manual race-restart tracking
+- Independent statistics display toggles
+- Persistent stopwatch with pause/resume, laps, and clear
+- Shared statistics/stopwatch overlay layout
+
+### Safety, validation, and recovery
+
+- Fixed protocol-key reservation for `0`, `N`, and `1`-`6`
+- Startup sanitization of unsafe configured bindings
+- Duplicate/malformed hotkey protection
+- Configuration relationship validation
 - Startup hardware detection
-- Troubleshooting log generation
-- Separate RealManual Input Detector utility
-- INI-based controller mappings, thresholds, timing, output keys, and feature switches
-- Persistent in-game stopwatch
+- Fail-closed unreadable controller handling
+- Automatic release of held output keys on focus loss
+- Best-effort output cleanup on RealManual exit/reload
+- NFSMW process restart/crash/replacement detection
+- Internal-only synchronization for a newly launched game process
+- Centralized transient-state clearing across resets and mode changes
+- Config reload from tray/hotkey
+
+### Utilities and performance
+
+- RealManual Input Detector
+- Maximum-video-settings menu automation
+- Optional NVIDIA Instant Replay hotkey
+- Optional NVIDIA screenshot hotkey
+- Focus-aware MainLoop scheduling
+- Default 5 ms focused polling
+- 100 ms unfocused polling
+- Gameplay polling stopped while paused/menu automation is active
 
 ---
 
@@ -316,9 +730,22 @@ Check:
 - if NFSMW is running as Administrator, run RealManual at the same privilege level
 - check `startup_log.txt` through **Open Validation Log** in the RealManual tray menu
 
+### Startup log reports a reserved protocol conflict
+
+The physical keyboard keys `0`, `N`, and `1`-`6` belong to MW2005-HShifter's fixed direct-gear protocol.
+
+If `startup_log.txt` reports a conflict:
+
+1. Find the named config entry.
+2. Change that binding to a non-reserved key/button/axis.
+3. Reload RealManual.
+4. Confirm the warning is gone.
+
+RealManual intentionally disables conflicting runtime bindings rather than allowing them to interfere with direct gear commands.
+
 ### RealManual reacts, but direct gears do not work
 
-This usually points to the ASI side rather than controller detection.
+This usually points to the ASI/direct-protocol side rather than controller detection.
 
 Check:
 
@@ -326,7 +753,59 @@ Check:
 - your ASI loader is working
 - you do not have two different copies/versions of MW2005-HShifter installed at the same time
 - the game is the supported 1.3 Black Edition build
-- the RealManual output-key mappings have not been changed to values the H-shifter mod does not expect
+- `0`, `N`, and `1`-`6` are not being intercepted/rebound by another script or utility
+- `startup_log.txt` does not report a reserved-key conflict
+
+### Sequential shifts stop after an input/device problem
+
+RealManual 1.2.0 intentionally fails closed when it cannot read both configured sequential directions safely.
+
+After the input becomes readable again, return the sequential lever to its neutral/released position before attempting the next shift.
+
+The same re-arm principle applies after several mode changes, handbrake ownership changes, resets, and other synchronization events.
+
+### Shifter handbrake works, but the sequential lever does not
+
+Check whether `ShifterHandbrakeButton` overlaps `SequentialUpshiftButton` or `SequentialDownshiftButton`.
+
+Use a non-overlapping shifter position if you want the sequential H-shifter pair and shifter handbrake available together. The included config recommends second gear for the handbrake and third/fourth for sequential shifting.
+
+### Reverse Assist does not engage
+
+Check:
+
+- `EnableReverseAssist=1`
+- `[GameKeys] ReverseKey` matches NFSMW's brake/reverse keyboard control
+- `CombinedPedalAxis` is correct
+- `BrakeAxisIncreasesWhenPressed` matches the physical axis direction
+- `EngageBrakeThreshold` is on the brake side of `CombinedPedalCenter`
+- the clutch is not currently pressed
+- in H-pattern mode, the shifter is actually in reverse
+- check `startup_log.txt` for pedal-axis/threshold warnings
+
+### Statistics do not update
+
+Check:
+
+- the relevant `TrackShifts`, `TrackStalls`, or `TrackRaceRestarts` option is enabled
+- the corresponding statistics display toggle is enabled if you expect to see it on-screen
+- race restarts are recorded manually with `RaceRestartButton`
+- `stats.txt` is writable beside `RealManual.ahk`
+
+Remember that the on-screen panel displays **Session** values. AllTime values are stored in `stats.txt` and are updated when the owning NFSMW process session is finalized.
+
+### Maximum video settings automation navigates incorrectly
+
+The automation assumes a specific starting state.
+
+Before using it:
+
+- be on the NFSMW **main menu**
+- have **Career Mode** selected
+- use the expected 1.3 Black Edition menu layout
+- do not assume it will work correctly if Basic and Advanced video settings are already in a different/maxed state
+
+Press the hotkey again to cancel an active sequence.
 
 ### Using newer or incompatible hardware through middleware
 
@@ -388,7 +867,27 @@ Typical procedure:
 6. Test the vJoy device in `joy.cpl`.
 7. Run the RealManual Input Detector and use the vJoy mappings in `config.ini`.
 
-Joystick Gremlin also provides a **Merge Axis** action. This can be useful when modern pedals expose accelerator and brake as separate axes but RealManual's optional stall simulation needs a combined gas/brake axis. The `Bidirectional` merge operation is intended for pedal-style inputs. After creating the merged vJoy axis, verify its actual rest/gas/brake values with the Input Detector and configure `CombinedPedalCenter`, `BrakeThreshold`, and `BrakeAxisIncreasesWhenPressed` accordingly.
+Joystick Gremlin also provides a **Merge Axis** action. This can be useful when modern pedals expose accelerator and brake as separate axes but RealManual's pedal-dependent features need a combined gas/brake axis. The `Bidirectional` merge operation is intended for pedal-style inputs.
+
+After creating the merged vJoy axis, verify its actual rest/gas/brake values with the Input Detector and configure:
+
+```ini
+[Pedals]
+CombinedPedalAxis=
+CombinedPedalCenter=
+BrakeAxisIncreasesWhenPressed=
+BrakeActiveThreshold=
+```
+
+Then configure the feature-specific harder thresholds as needed:
+
+```ini
+[Sequential]
+BrakeResetThreshold=
+
+[ReverseAssist]
+EngageBrakeThreshold=
+```
 
 #### Optional: HidHide
 
@@ -433,23 +932,26 @@ Open **Device Manager**:
 2. Open **Properties**.
 3. Open the **Details** tab.
 4. Select **Hardware Ids**.
-5. Note the value containing: VID_XXXX&PID_YYYY
-   
+5. Note the value containing:
+
+   ```text
+   VID_XXXX&PID_YYYY
+   ```
 
 For example, the Logitech G29 uses:
-   ```text
+
+```text
 VID_046D&PID_C24F
 ```
-
 
 #### Back up the per-user joystick keys
 
 For a G29, PowerShell/Command Prompt examples are:
+
 ```bat
 reg export "HKCU\System\CurrentControlSet\Control\MediaProperties\PrivateProperties\Joystick\OEM\VID_046D&PID_C24F" "%USERPROFILE%\Desktop\G29-OEM-backup.reg"
 reg export "HKCU\System\CurrentControlSet\Control\MediaProperties\PrivateProperties\DirectInput\VID_046D&PID_C24F" "%USERPROFILE%\Desktop\G29-DirectInput-backup.reg"
 ```
-
 
 For another device, replace the VID/PID with the hardware ID reported by Device Manager.
 
@@ -460,16 +962,19 @@ If a key does not exist, `reg export` will report that it could not find it; do 
 Close NFSMW, RealManual, the Input Detector, and other controller tools. Disconnect the controller if practical.
 
 Delete **only the matching VID/PID key** under these locations:
-   ```text
+
+```text
 HKEY_CURRENT_USER\System\CurrentControlSet\Control\MediaProperties\PrivateProperties\Joystick\OEM\VID_XXXX&PID_YYYY
 ```
 
 and:
-   ```text
+
+```text
 HKEY_CURRENT_USER\System\CurrentControlSet\Control\MediaProperties\PrivateProperties\DirectInput\VID_XXXX&PID_YYYY
 ```
 
 For the G29 example:
+
 ```bat
 reg delete "HKCU\System\CurrentControlSet\Control\MediaProperties\PrivateProperties\Joystick\OEM\VID_046D&PID_C24F" /f
 reg delete "HKCU\System\CurrentControlSet\Control\MediaProperties\PrivateProperties\DirectInput\VID_046D&PID_C24F" /f
@@ -490,12 +995,13 @@ The purpose of this reset is to remove stale per-user joystick/OEM/DirectInput s
 #### Check `CurrentJoystickSettings`
 
 Legacy joystick enumeration also uses a mapping under:
-   ```text
+
+```text
 HKEY_CURRENT_USER\System\CurrentControlSet\Control\MediaResources\Joystick\DINPUT.DLL\CurrentJoystickSettings
 ```
 
-
 Typical values include names such as:
+
 ```text
 Joystick1OEMName
 Joystick2OEMName
@@ -508,10 +1014,10 @@ The `Joystick#OEMName` values identify which VID/PID occupies a legacy joystick 
 If this key contains stale mappings, or is missing/corrupt on one Windows user profile while the same hardware works on another profile, the problem may be per-user enumeration rather than the physical wheel or USB driver.
 
 Before changing it, export the key:
-   ```bat
+
+```bat
 reg export "HKCU\System\CurrentControlSet\Control\MediaResources\Joystick\DINPUT.DLL\CurrentJoystickSettings" "%USERPROFILE%\Desktop\CurrentJoystickSettings-backup.reg"
 ```
-
 
 For a targeted cleanup, remove stale `Joystick#OEMName` and matching `Joystick#Configuration` values that clearly reference a controller which is no longer present, then reconnect/re-enumerate the hardware.
 
@@ -537,7 +1043,7 @@ Avoid removing unrelated generic HID devices; keyboards, mice, other controllers
 
 This strongly suggests a per-user configuration/enumeration problem because much of the legacy joystick state used here is stored under `HKEY_CURRENT_USER`.
 
-Test `joy.cpl` in both accounts. If one account has a working Test page and the other is blank, focus troubleshooting on the affected account's joystick/DirectInput registry state
+Test `joy.cpl` in both accounts. If one account has a working Test page and the other is blank, focus troubleshooting on the affected account's joystick/DirectInput registry state.
 
 ### Controller ordering / enumeration problems
 
@@ -560,8 +1066,11 @@ Keep devices on the same USB ports after configuration when possible.
 - RealManual currently targets NFSMW 2005 and relies on MW2005-HShifter for direct gear selection.
 - The bundled H-shifter mod currently targets the 1.3 Black Edition executable.
 - RealManual does not provide force feedback.
-- The stall system is a simulation based on pedal and gear state; it does not currently read actual engine RPM, vehicle speed, or clutch torque from game memory.
-- Stall-throttle detection currently assumes a usable combined gas/brake axis.
+- The stall system is a simulation based on pedal and gear state; it does not currently read actual engine RPM, vehicle speed, clutch torque, or other drivetrain values from game memory.
+- Pedal-dependent features such as stall-throttle detection, sequential brake reset, and Reverse Assist currently expect a usable combined gas/brake axis.
+- Race-restart statistics are manually recorded; RealManual does not currently detect race restarts from game memory.
+- The maximum-video-settings automation is a positional menu macro and depends on the documented menu starting state/layout.
+- NVIDIA capture utilities send fixed `Alt+F10` and `Alt+F1` shortcuts; custom NVIDIA Overlay shortcut assignments are not detected automatically.
 - Middleware configurations such as UCR/vJoy, Joystick Gremlin/vJoy, and HidHide are compatibility options and are not guaranteed to work with every wheel/base/driver combination.
 - Windows joystick numbering can change after hardware/driver enumeration changes.
 
@@ -578,6 +1087,7 @@ https://github.com/Eradinelle/MW2005-HShifter
 MW2005-HShifter incorporates **MinHook** and Hacker Disassembler Engine components.
 
 See:
+
 ```text
 THIRD_PARTY_NOTICES.md
 licenses/MW2005-HShifter-LICENSE.txt

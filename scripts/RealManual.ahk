@@ -1,67 +1,365 @@
-﻿; =============================================================================
+﻿; ==========================================================================================================================================================
+; REALMANUAL SCRIPT LOOKUP
+; ==========================================================================================================================================================
+;
 ; SECTION 1: SCRIPT DIRECTIVES AND APPLICATION METADATA
-; =============================================================================
+;   Directives / metadata:
+;       AutoHotkey requirements, single-instance policy, keyboard hook
+;       app name/version, config path, send mode, key delay
+;
+;------------------------------------------------------------------------------------------------------------------------------------------------------------
+;
 ; SECTION 2: TRAY MENU SETUP
-; =============================================================================
+;   Tray actions:
+;       Reload Config, Pause/Resume, Open Validation Log, Exit
+;
+;------------------------------------------------------------------------------------------------------------------------------------------------------------
+;
 ; SECTION 3: CONFIG FILE HELPERS
-; =============================================================================
-; SECTION 4: CONFIG LOADING - MODE AND FEATURES
-; =============================================================================
-; SECTION 5: CONFIG LOADING - NOTIFICATIONS AND TIMING
-; =============================================================================
-; SECTION 6: CONFIG LOADING - AXES, THRESHOLDS, AND OUTPUT KEYS
-; =============================================================================
-; SECTION 7: CONFIG LOADING - SHIFTER AND SEQUENTIAL SETTINGS
-; =============================================================================
-; SECTION 8: RUNTIME STATE VARIABLES
-; =============================================================================
-; SECTION 9: INPUT AND OUTPUT MAPS
-; =============================================================================
-; SECTION 10: LOW-LEVEL OUTPUT HELPERS & SAFETY
-; =============================================================================
-; SECTION 11: LOW-LEVEL INPUT READERS
-; =============================================================================
-; SECTION 12: NOTIFICATIONS, VALIDATION, AND LOGGING
-; =============================================================================
-; SECTION 13: STOPWATCH
-; =============================================================================
-; SECTION 14: DYNAMIC HOTKEYS AND LIVE MODE TOGGLES
-; =============================================================================
-; SECTION 15: AUXILIARY INPUT HANDLERS
-; =============================================================================
-; SECTION 16: STALL / ENGINE OFF/ON SIMULATION LOGIC
-; =============================================================================
-; SECTION 17: H-PATTERN TRANSMISSION LOGIC
-; =============================================================================
-; SECTION 18: SEQUENTIAL TRANSMISSION LOGIC
-; =============================================================================
-; SECTION 19: RECOVERY AND MANUAL SYNC
-; =============================================================================
-; SECTION 20: MAIN LOOP
-; =============================================================================
-; SECTION 21: STARTUP
-; =============================================================================
-; SECTION 22: HOTKEYS
-; =============================================================================
+;   Config rule maps:
+;       numericConfigRules
+;       booleanConfigRules
+;
+;   Functions:
+;       ConfigRuleKey()
+;       TryParseConfigInt()
+;       TryParseConfigBool()
+;       ReadBool()
+;       ReadInt()
+;       ReadText()
+;
+;------------------------------------------------------------------------------------------------------------------------------------------------------------
+;
+; SECTION 4: CONFIG LOADING - GENERAL AND HOTKEYS
+;   Config groups:
+;       [General]
+;       [Hotkeys]
+;
+;------------------------------------------------------------------------------------------------------------------------------------------------------------
+;
+; SECTION 5: CONFIG LOADING - TRANSMISSION AND CLUTCH
+;   Config groups:
+;       [Transmission]
+;       [Clutch]
+;
+;------------------------------------------------------------------------------------------------------------------------------------------------------------
+;
+; SECTION 6: CONFIG LOADING - PEDALS, GAME KEYS, AND H-PATTERN
+;   Config groups:
+;       [Pedals]
+;       [GameKeys]
+;       [HPattern]
+;
+;------------------------------------------------------------------------------------------------------------------------------------------------------------
+;
+; SECTION 7: CONFIG LOADING - SEQUENTIAL, HANDBRAKE, STALLING, AND REVERSE ASSIST
+;   Config groups:
+;       [Sequential]
+;       [Handbrake]
+;       [Stalling]
+;       [ReverseAssist]
+;
+;------------------------------------------------------------------------------------------------------------------------------------------------------------
+;
+; SECTION 8: CONFIG LOADING - TIMING, STOPWATCH, AND STATISTICS
+;   Config groups:
+;       [Timing]
+;       [Stopwatch]
+;       [Statistics]
+;
+;------------------------------------------------------------------------------------------------------------------------------------------------------------
+;
+; SECTION 9: RUNTIME STATE VARIABLES
+;   State groups:
+;       transmission / H-pattern state
+;       sequential / paddle / keyboard state
+;       clutch transaction state
+;       handbrake state
+;       reverse-assist state
+;       stall / engine state
+;       script / application state
+;       video-settings menu automation state
+;       NFSMW process state
+;       stopwatch state
+;       statistics counters / display state
+;       shared overlay layout state
+;
+;------------------------------------------------------------------------------------------------------------------------------------------------------------
+;
+; SECTION 10: INPUT / OUTPUT MAPS AND BINDING SANITIZATION
+;   Maps:
+;       hShifterProtocol
+;       gearKeys
+;       reservedProtocolKeys
+;       reservedProtocolVks
+;       gearButtons
+;
+;   Functions:
+;       GetReservedProtocolConflict()
+;       SanitizeUserConfiguredKey()
+;       SanitizeUserConfiguredBindings()
+;       RefreshActiveSequentialBindings()
+;
+;   Initialization:
+;       sanitize configured runtime bindings
+;       precompute auxiliary-input configuration flags
+;       precompute sequential / shifter-handbrake binding conflicts
+;       resolve active sequential bindings
+;       build sanitized H-pattern forward-gear map
+;
+;------------------------------------------------------------------------------------------------------------------------------------------------------------
+;
+; SECTION 11: LOW-LEVEL OUTPUT HELPERS & SAFETY
+;   Functions:
+;       SendKeyForDuration()
+;       TapKey()
+;       SaveNvidiaInstantReplay()
+;       CaptureNvidiaScreenshot()
+;       TrySetOutputKeyState()
+;       TapThrottleBlip()
+;       SendGearToMod()
+;       ReleaseReverseAssistQuietly()
+;       ReleaseHeldOutputsQuietly()
+;       HandleScriptExit()
+;
+;------------------------------------------------------------------------------------------------------------------------------------------------------------
+;
+; SECTION 12: LOW-LEVEL INPUT READERS
+;   Generic readers:
+;       TryGetInputState()
+;       TryGetPhysicalKeyState()
+;       SafeGetKeyState()
+;
+;   Transmission / control readers:
+;       ReadClutchAxis()
+;       ReadCombinedPedalAxis()
+;       IsClutchPressed()
+;       ReadSelectedGear()
+;       IsBrakeAxisPastThreshold()
+;       IsBrakePedalActive()
+;       IsBrakePressedForSequentialReset()
+;
+;   Handbrake / shifter arbitration:
+;       IsShifterHandbrakeActive()
+;       IsAnalogHandbrakeActive()
+;
+;   Stall / restart readers:
+;       ReadClutchReleasePercent()
+;       ReadThrottlePercentForStall()
+;       IsBrakePressedForReverseAssist()
+;       IsFirstGearSelectedForStall()
+;       IsPhysicalShifterNeutral()
+;       IsClutchFullyPressedForRestart()
+;
+;------------------------------------------------------------------------------------------------------------------------------------------------------------
+;
+; SECTION 13: NOTIFICATIONS, STATUS, VALIDATION, AND LOGGING
+;   Status / display helpers:
+;       BoolText()
+;       ModeText()
+;       ClearStatusToolTip()
+;       ShowToolTipMessage()
+;       ShowLiveModeStatus()
+;       ShowStartupInfo()
+;
+;   Validation / logging:
+;       DetectInputHardware()
+;       AddValidationWarning()
+;       BuildValidationText()
+;       WriteStartupLogFile()
+;       OpenValidationLog()
+;
+;------------------------------------------------------------------------------------------------------------------------------------------------------------
+;
+; SECTION 14: STATISTICS & SHARED OVERLAY LAYOUT
+;   Persistence / initialization:
+;       ReadStatCount()
+;       SaveStatCount()
+;       InitializeStats()
+;       ApplyStatisticsStartupOptions()
+;       StartStatsSession()
+;       FinalizeStatsSession()
+;       SynchronizeStatsSession()
+;
+;   Event recording:
+;       RecordShift()
+;       RecordStall()
+;       RecordRaceRestart()
+;
+;   Display / shared layout:
+;       IsStatsDisplayActive()
+;       GetOverlayX()
+;       UpdateStatsDisplay()
+;       ToggleStatsDisplay()
+;
+;------------------------------------------------------------------------------------------------------------------------------------------------------------
+;
+; SECTION 15: STOPWATCH
+;   Functions:
+;       FormatStopwatchTime()
+;       GetStopwatchElapsedMs()
+;       UpdateStopwatchDisplay()
+;       ToggleStopwatch()
+;       LapStopwatch()
+;       ClearStopwatch()
+;
+;------------------------------------------------------------------------------------------------------------------------------------------------------------
+;
+; SECTION 16: TRANSIENT STATE CLEAR / DISARM HELPERS
+;   Transmission state:
+;       ClearEdgeInputState()
+;       ClearClutchTransactionState()
+;       ClearTransmissionInputState()
+;       DisarmEdgeInputs()
+;
+;   Stall / brake-reset state:
+;       ClearStallDetectionState()
+;       ClearBrakeResetStallGraceState()
+;       ClearSequentialBrakeHoldTimer()
+;       ClearSequentialBrakeResetState()
+;
+;------------------------------------------------------------------------------------------------------------------------------------------------------------
+;
+; SECTION 17: DYNAMIC HOTKEYS AND LIVE MODE TOGGLES
+;   Dynamic registration:
+;       GetDynamicHotkeyDefinitions()
+;       TryRegisterHotkey()
+;       RegisterDynamicHotkeys()
+;       ShowHotkeyHelp()
+;
+;   Transmission / feature controls:
+;       SetTransmissionMode()
+;       ToggleTransmissionMode()
+;       ToggleClutchRequired()
+;       ToggleClutchNeutral()
+;       ToggleMaxForwardGear()
+;       ToggleSequentialShifterInvert()
+;       ToggleShifterHandbrake()
+;       ToggleStalling()
+;       ToggleScriptPause()
+;
+;------------------------------------------------------------------------------------------------------------------------------------------------------------
+;
+; SECTION 18: NFSMW MENU AUTOMATION
+;   Menu output:
+;       TapMenuKey()
+;
+;   Sequence construction:
+;       AddMenuSequenceSteps()
+;       BuildMaxVideoSettingsSequence()
+;
+;   Sequence lifecycle / scheduling:
+;       StopMaxVideoSettingsSequence()
+;       ProcessMaxVideoSettingsStep()
+;
+;   Hotkey entry point:
+;       ApplyMaxVideoSettings()
+;
+;------------------------------------------------------------------------------------------------------------------------------------------------------------
+;
+; SECTION 19: AUXILIARY INPUT / SYNC HANDLERS
+;   Functions:
+;       HandlePaddleSync()
+;       HandleKeyboardShiftSync()
+;       HandleHandbrake()
+;       HandleReverseAssist()
+;
+;------------------------------------------------------------------------------------------------------------------------------------------------------------
+;
+; SECTION 20: STALL / ENGINE OFF/ON SIMULATION LOGIC
+;   Stall protection / detection:
+;       ShouldSuppressStallForBrakeReset()
+;       HandleStallDetection()
+;
+;   Engine-state transitions:
+;       EnterEngineOffState()
+;       StallEngine()
+;       ShutOffEngine()
+;       MaintainStalledState()
+;       TryRestartEngine()
+;       HandleIgnitionButton()
+;
+;------------------------------------------------------------------------------------------------------------------------------------------------------------
+;
+; SECTION 21: H-PATTERN TRANSMISSION LOGIC
+;   Function:
+;       HandleHPatternTransmission()
+;
+;------------------------------------------------------------------------------------------------------------------------------------------------------------
+;
+; SECTION 22: SEQUENTIAL TRANSMISSION LOGIC
+;   Brake recovery:
+;       HandleSequentialBrakeHoldReset()
+;
+;   Shift processing:
+;       TrySequentialShift()
+;       SendQueuedSequentialShifts()
+;       HandleSequentialTransmission()
+;
+;------------------------------------------------------------------------------------------------------------------------------------------------------------
+;
+; SECTION 23: RECOVERY AND MANUAL SYNC
+;   Functions:
+;       SyncGear()
+;       ResetInputs()
+;
+;------------------------------------------------------------------------------------------------------------------------------------------------------------
+;
+; SECTION 24: NFSMW PROCESS / FOCUS TRACKING
+;   Functions:
+;       IsNFSFocused()
+;       InitializeNFSProcessTracking()
+;       MonitorNFSProcess()
+;
+;------------------------------------------------------------------------------------------------------------------------------------------------------------
+;
+; SECTION 25: MAIN LOOP
+;   Functions:
+;       SetMainLoopTimerInterval()
+;       UpdateMainLoopSchedule()
+;       MainLoop()
+;
+;------------------------------------------------------------------------------------------------------------------------------------------------------------
+;
+; SECTION 26: STARTUP
+;   Initialization order:
+;       register exit cleanup
+;       initialize statistics
+;       initialize NFSMW process tracking
+;       ApplyStatisticsStartupOptions()
+;       register configurable hotkeys
+;       show startup / validation information
+;       start NFSMW process monitor
+;       start MainLoop
+;
+;-----------------------------------------------------------------------------------------------------------------------------------------------------------
+;
+; SECTION 27: FIXED H-SHIFTER HOTKEYS
+;   Fixed protocol bindings:
+;       $0 -> reverse
+;       $n -> neutral
+;       $1-$6 -> forward gears
+;
+; ==========================================================================================================================================================
 
 
-; =============================================================================
+; ==========================================================================================================================================================
 ; SECTION 1: SCRIPT DIRECTIVES AND APPLICATION METADATA
-; =============================================================================
+; ==========================================================================================================================================================
 
 #Requires AutoHotkey v2.0
 #SingleInstance Force ; prevent duplicate copies of this script
 #UseHook true ; force keyboard hook for better game compatibility
 appName := "RealManual"
-appVersion := "1.1.1"
+appVersion := "1.2.0"
 SendMode "Event" ; event-style key sending for older games
 configFile := A_ScriptDir "\config.ini" ; config path needs to be beside this script
 SetKeyDelay 0, 0 ; sends keys as quickly as possible
 
 
-; =============================================================================
+; ==========================================================================================================================================================
 ; SECTION 2: TRAY MENU SETUP
-; =============================================================================
+; ==========================================================================================================================================================
 
 A_TrayMenu.Delete()
 A_TrayMenu.Add("Reload Config", (*) => Reload())
@@ -73,495 +371,1259 @@ A_TrayMenu.Add()
 A_TrayMenu.Add("Exit RealManual", (*) => ExitApp())
 
 
-; =============================================================================
+; ==========================================================================================================================================================
 ; SECTION 3: CONFIG FILE HELPERS
-; =============================================================================
+; ==========================================================================================================================================================
 
-; =============================================================================
+; ==========================================================================================================================================================
+; CONFIGURATION SANITY RULES
+; ==========================================================================================================================================================
+;
+; Numeric rules are operational guardrails
+;
+; Each entry:
+;   "Section|Key" => [minimum, maximum]
+;
+; The same rules are used by:
+;   ReadInt()             - runtime fallback protection
+;   BuildValidationText() - startup sanity reporting
+; ==========================================================================================================================================================
+
+ConfigRuleKey(section, key) {
+    return section "|" key
+} ; end configrulekey
+
+
+numericConfigRules := Map(
+    ConfigRuleKey("General", "ToolTipDurationMs"),             [100, 30000],
+
+    ConfigRuleKey("Transmission", "MaxForwardGear"),           [5, 6],
+
+    ConfigRuleKey("Timing", "KeyHoldMs"),                      [1, 250],
+    ConfigRuleKey("Timing", "ScanIntervalMs"),                 [1, 100],
+
+    ConfigRuleKey("Clutch", "ClutchThreshold"),                [1, 99],
+    ConfigRuleKey("Handbrake", "HandbrakeThreshold"),          [1, 99],
+
+    ConfigRuleKey("Pedals", "CombinedPedalCenter"),            [1, 99],
+    ConfigRuleKey("Pedals", "BrakeActiveThreshold"),           [1, 99],
+
+    ConfigRuleKey("Sequential", "BrakeHoldResetMs"),           [100, 10000],
+    ConfigRuleKey("Sequential", "BrakeResetThreshold"),        [1, 99],
+    ConfigRuleKey("Sequential", "QueuedShiftDelayMs"),         [1, 1000],
+
+    ConfigRuleKey("Stalling", "ClutchReleaseThreshold"),       [1, 99],
+    ConfigRuleKey("Stalling", "ThrottleThreshold"),            [0, 100],
+    ConfigRuleKey("Stalling", "RestartClutchThreshold"),       [0, 99],
+    ConfigRuleKey("Stalling", "NeutralResendMs"),              [50, 1000],
+    ConfigRuleKey("Stalling", "ThrottleBlipMs"),               [1, 2000],
+    ConfigRuleKey("Stalling", "NoInputStallDelayMs"),          [0, 1500],
+    ConfigRuleKey("Stalling", "BrakeResetStallGraceMs"),       [0, 1000],
+
+    ConfigRuleKey("ReverseAssist", "EngageBrakeThreshold"),    [1, 99],
+
+    ConfigRuleKey("Stopwatch", "StopwatchRefreshMs"),          [20, 1000],
+    ConfigRuleKey("Stopwatch", "StopwatchMaxLines"),           [1, 50]
+)
+
+booleanConfigRules := Map(
+    ConfigRuleKey("General", "WriteStartupLog"), true,
+    ConfigRuleKey("General", "EnableToolTips"), true,
+
+    ConfigRuleKey("Transmission", "StartInSequentialMode"), true,
+    ConfigRuleKey("Sequential", "InvertSequentialShifter"), true,
+    ConfigRuleKey("Clutch", "RequireClutch"), true,
+    ConfigRuleKey("Clutch", "ClutchActsAsNeutral"), true,
+
+    ConfigRuleKey("Handbrake", "EnableShifterHandbrake"), true,
+
+    ConfigRuleKey("Sequential", "EnableBrakeHoldGearReset"), true,
+    ConfigRuleKey("Pedals", "BrakeAxisIncreasesWhenPressed"), true,
+
+    ConfigRuleKey("Stalling", "EnableStalling"), true,
+    ConfigRuleKey("ReverseAssist", "EnableReverseAssist"), true,
+
+    ConfigRuleKey("Statistics", "TrackShifts"), false,
+    ConfigRuleKey("Statistics", "TrackStalls"), false,
+    ConfigRuleKey("Statistics", "TrackRaceRestarts"), false,
+    ConfigRuleKey("Statistics", "ClearAllTimeOnStartup"), false
+)
+
+; ==========================================================================================================================================================
+; TryParseConfigInt(rawValue, &parsedValue)
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
+; Validates integer syntax
+; ==========================================================================================================================================================
+TryParseConfigInt(rawValue, &parsedValue) {
+    parsedValue := 0
+    rawValue := Trim(rawValue)
+
+    if !RegExMatch(rawValue, "^[0-9]+$") {
+        return false
+    } ; end syntax guard
+
+    try {
+        parsedValue := Integer(rawValue)
+        return true
+    } catch {
+        return false
+    } ; end conversion guard
+} ; end tryparseconfigint
+
+; ==========================================================================================================================================================
+; TryParseConfigBool(rawValue, &parsedValue)
+; ==========================================================================================================================================================
+TryParseConfigBool(rawValue, &parsedValue) {
+    rawValue := Trim(rawValue)
+    parsedValue := false
+
+    if rawValue = "1" {
+        parsedValue := true
+        return true
+    }
+
+    if rawValue = "0" {
+        parsedValue := false
+        return true
+    }
+
+    return false
+} ; end tryparseconfigbool
+
+; ==========================================================================================================================================================
 ; ReadBool(section, key, fallback)
-; -----------------------------------------------------------------------------
-; Reads a true/false option from config.ini.
-; The fallback value is used when the setting is missing from config.ini.
-; This keeps the script usable with deleted or forgotten config lines.
-; =============================================================================
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
+; Reads a boolean option from config.ini.
+;
+; Missing, blank, or malformed values return the supplied fallback.
+; ==========================================================================================================================================================
 ReadBool(section, key, fallback) {
     global configFile
-    return IniRead(configFile, section, key, fallback ? "1" : "0") = "1" ; returns true on 1
+
+    rawValue := IniRead(configFile, section, key, "")
+
+    if TryParseConfigBool(rawValue, &parsedValue) {
+        return parsedValue
+    }
+
+    return fallback
 } ; end readbool
 
 
-; =============================================================================
+; ==========================================================================================================================================================
 ; ReadInt(section, key, fallback)
-; -----------------------------------------------------------------------------
-; Reads a numeric integer option from config.ini.
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
+; Reads a numeric config value and applies its registered sanity range.
 ;
-; Used for timing and threshold values such as:
-;   KeyHoldMs
-;   ScanIntervalMs
-;   ClutchThreshold
-;   HandbrakeThreshold
+; Invalid syntax, missing values, or out-of-range values return fallback.
 ;
-; AutoHotkey reads INI values as text, so this function converts the result into
-; an integer before returning it.
-; =============================================================================
+; BuildValidationText() separately reports the original invalid config value
+; ==========================================================================================================================================================
 ReadInt(section, key, fallback) {
-    global configFile
-    return Integer(IniRead(configFile, section, key, fallback))
+    global configFile, numericConfigRules
+
+    ruleKey := ConfigRuleKey(section, key)
+
+    ; explicit sanity rule
+    if !numericConfigRules.Has(ruleKey) {
+        return fallback
+    } ; end missing numeric rule guard
+
+    rawValue := IniRead(configFile, section, key, "")
+
+    if !TryParseConfigInt(rawValue, &parsedValue) {
+        return fallback
+    } ; end integer syntax guard
+
+    range := numericConfigRules[ruleKey]
+    minimum := range[1]
+    maximum := range[2]
+
+    if parsedValue < minimum || parsedValue > maximum {
+        return fallback
+    } ; end numeric range guard
+
+    return parsedValue
 } ; end readint
 
 
-; =============================================================================
+; ==========================================================================================================================================================
 ; ReadText(section, key, fallback)
-; -----------------------------------------------------------------------------
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
 ; Reads a text option from config.ini.
 ;
 ; Used for key names, joystick button names, and joystick axis names such as:
 ;   1Joy13
 ;   1JoyY
 ;   Space
-;   n
+;   F4
 ;
-; The fallback value protects from broken or incomplete config files.
-; =============================================================================
+; Missing settings return the supplied fallback.
+;
+; When no fallback is supplied, a missing setting also returns an empty string.
+; ==========================================================================================================================================================
 ReadText(section, key, fallback := "") {
     global configFile
+
     return IniRead(configFile, section, key, fallback)
 } ; end readtext
 
 
-; =============================================================================
-; SECTION 4: CONFIG LOADING - MODE AND FEATURES
-; =============================================================================
+; ==========================================================================================================================================================
+; SECTION 4: CONFIG LOADING - GENERAL AND HOTKEYS
+; ==========================================================================================================================================================
 
-transmissionIsSequential := ReadBool("Mode", "TransmissionIsSequential", false)
-invertSequentialAxis := ReadBool("Mode", "InvertSequentialAxis", false)
-requireClutch := ReadBool("Mode", "RequireClutch", true)
-clutchActsAsNeutral := ReadBool("Mode", "ClutchActsAsNeutral", true)
-maxForwardGear := ReadInt("Mode", "MaxForwardGear", 6) ; highest forward gear supported by current car
-enableHandbrake := ReadBool("Mode", "EnableHandbrake", true)
-enableReverse := ReadBool("Mode", "EnableReverse", true) ; true = reverse slot enabled
-enableSyncHotkeys := ReadBool("Mode", "EnableSyncHotkeys", true)
-enableLiveHotkeys := ReadBool("LiveHotkeys", "EnableLiveHotkeys", true) ; true = allows hotkeys to change modes while script is running
-enableStalling := ReadBool("Stalling", "EnableStalling", false) ; enables first-gear stall simulation
-noInputStallDelayMs := ReadInt("Stalling", "NoInputStallDelayMs", 300) ; time first gear may remain clutch-out with insufficient throttle
+; General Configuration
+writeStartupLog := ReadBool("General", "WriteStartupLog", true)
+enableToolTips := ReadBool("General", "EnableToolTips", true)
+toolTipDurationMs := ReadInt("General", "ToolTipDurationMs", 2000)
 
-
+; General Controls
+helpButton := ReadText("Hotkeys", "HelpButton")
 resetButton := ReadText("Hotkeys", "ResetButton")
-pauseButton := ReadText("Hotkeys", "PauseButton", "")
-reloadButton := ReadText("Hotkeys", "ReloadButton", "^F9")
-helpButton := ReadText("Hotkeys", "HelpButton", "F7") ; displays current RealManual modes and hotkeys
-toggleTransmissionButton := ReadText("Hotkeys", "ToggleTransmissionButton", "")
-toggleSequentialInvertButton := ReadText("Hotkeys", "ToggleSequentialInvertButton", "+F11")
-toggleClutchButton := ReadText("Hotkeys", "ToggleClutchButton", "")
-toggleNeutralButton := ReadText("Hotkeys", "ToggleNeutralButton", "")
-toggleFiveGearModeButton := ReadText("Hotkeys", "ToggleFiveGearModeButton", "^F11") ; configurable 5-speed/6-speed toggle hotkey
-toggleShifterHandbrakeButton := ReadText("Hotkeys", "ToggleShifterHandbrakeButton", "F9")
-toggleShifterHandbrakeInvertButton := ReadText("Hotkeys", "ToggleShifterHandbrakeInvertButton", "+F9")
+pauseButton := ReadText("Hotkeys", "PauseButton")
+reloadButton := ReadText("Hotkeys", "ReloadButton")
+
+; Transmission Controls
+toggleTransmissionModeButton := ReadText("Hotkeys", "ToggleTransmissionModeButton")
+toggleSequentialShifterInvertButton := ReadText("Hotkeys", "ToggleSequentialShifterInvertButton")
+toggleMaxForwardGearButton := ReadText("Hotkeys", "ToggleMaxForwardGearButton")
+
+; Clutch Controls
+toggleClutchRequiredButton := ReadText("Hotkeys", "ToggleClutchRequiredButton")
+toggleClutchNeutralButton := ReadText("Hotkeys", "ToggleClutchNeutralButton")
+
+; Shifter-Handbrake Controls
+toggleShifterHandbrakeButton := ReadText("Hotkeys", "ToggleShifterHandbrakeButton")
+
+; Stalling / Ignition Controls
+toggleStallingButton := ReadText("Hotkeys", "ToggleStallingButton")
 ignitionButton := ReadText("Hotkeys", "IgnitionButton")
-toggleStallingButton := ReadText("Hotkeys", "ToggleStallingButton", "+F10")
-stopwatchButton := ReadText("Hotkeys", "StopwatchButton", "F6") ; starts, pauses, or resumes stopwatch
-stopwatchLapButton := ReadText("Hotkeys", "StopwatchLapButton", "+F6") ; freezes current lap and starts the next
-stopwatchClearButton := ReadText("Hotkeys", "StopwatchClearButton", "^F6") ; clears stopwatch
+
+; Stopwatch Controls
+stopwatchButton := ReadText("Hotkeys", "StopwatchButton")
+stopwatchLapButton := ReadText("Hotkeys", "StopwatchLapButton")
+stopwatchClearButton := ReadText("Hotkeys", "StopwatchClearButton")
+
+; Statistics Controls
+statsShiftsButton := ReadText("Hotkeys", "StatsShiftsButton")
+statsStallsButton := ReadText("Hotkeys", "StatsStallsButton")
+statsRaceRestartsButton := ReadText("Hotkeys", "StatsRaceRestartsButton")
+raceRestartButton := ReadText("Hotkeys", "RaceRestartButton")
+
+; Utility / Capture Controls
+maxVideoSettingsButton := ReadText("Hotkeys", "MaxVideoSettingsButton")
+saveInstantReplayButton := ReadText("Hotkeys", "SaveInstantReplayButton")
+captureScreenshotButton := ReadText("Hotkeys", "CaptureScreenshotButton")
 
 
-; =============================================================================
-; SECTION 5: CONFIG LOADING - NOTIFICATIONS AND TIMING
-; =============================================================================
+; ==========================================================================================================================================================
+; SECTION 5: CONFIG LOADING - TRANSMISSION AND CLUTCH
+; ==========================================================================================================================================================
 
-enableToolTips := ReadBool("Notifications", "EnableToolTips", true)
-toolTipDurationMs := ReadInt("Notifications", "ToolTipDurationMs", 2000) ; tooltip lifetime in milliseconds
-showDetailedStartup := ReadBool("Startup", "ShowDetailedStartup", true)
-writeStartupLog := ReadBool("Startup", "WriteStartupLog", true)
-keyHoldMs := ReadInt("Timing", "KeyHoldMs", 18) ; milliseconds to hold output keys
-scanIntervalMs := ReadInt("Timing", "ScanIntervalMs", 5) ; milliseconds between input scans
-throttleBlipMs := ReadInt("Stalling", "ThrottleBlipMs", 120) ; duration of simulated throttle blips
-stopwatchRefreshMs := ReadInt("Stopwatch", "RefreshMs", 50) ; milliseconds between stopwatch display updates
-stopwatchMaxLines := ReadInt("Stopwatch", "MaxLines", 10) ; maximum stopwatch lines displayed at once
-brakeResetStallGraceMs := ReadInt("Stalling", "BrakeResetStallGraceMs", 1000) ; stall protection after sequential brake-reset reverse release
+; Transmission Configuration
+startInSequentialMode := ReadBool("Transmission", "StartInSequentialMode", false)
+transmissionIsSequential := startInSequentialMode
+maxForwardGear := ReadInt("Transmission", "MaxForwardGear", 6)
 
-
-; =============================================================================
-; SECTION 6: CONFIG LOADING - AXES, THRESHOLDS, AND OUTPUT KEYS
-; =============================================================================
-
-clutchAxis := ReadText("Axes", "ClutchAxis")
-brakeAxis := ReadText("Sequential", "BrakeAxis") ; brake axis used for sequential reset heuristic
-handbrakeAxis := ReadText("Axes", "HandbrakeAxis")
-
-clutchThreshold := ReadInt("Thresholds", "ClutchThreshold", 40) ; clutch activates below this value
-brakeThreshold := ReadInt("Sequential", "BrakeThreshold", 70) ; brake threshold used for sequential reset heuristic
-handbrakeThreshold := ReadInt("Thresholds", "HandbrakeThreshold", 35) ; handbrake activates above this value
-
-neutralKey := ReadText("OutputKeys", "NeutralKey", "n")
-forwardKey := ReadText("OutputKeys", "ForwardKey", "Up") ; brief throttle tap used for stall jerk and restart rev
-reverseKey := ReadText("OutputKeys", "ReverseKey", "s")
-handbrakeKey := ReadText("OutputKeys", "HandbrakeKey", "Space")
-
-shiftUpKey := ReadText("OutputKeys", "ShiftUpKey", "e")
-shiftDownKey := ReadText("OutputKeys", "ShiftDownKey", "q")
+; Clutch Configuration
+requireClutch := ReadBool("Clutch", "RequireClutch", true)
+clutchActsAsNeutral := ReadBool("Clutch", "ClutchActsAsNeutral", true)
+clutchAxis := ReadText("Clutch", "ClutchAxis")
+clutchThreshold := ReadInt("Clutch", "ClutchThreshold", 40)
 
 
-; =============================================================================
-; SECTION 7: CONFIG LOADING - SHIFTER AND SEQUENTIAL SETTINGS
-; =============================================================================
+; ==========================================================================================================================================================
+; SECTION 6: CONFIG LOADING - PEDALS, GAME KEYS, AND H-PATTERN
+; ==========================================================================================================================================================
 
-gear1Button := ReadText("ShifterButtons", "Gear1Button") ; physical first gear button, etc.
-gear2Button := ReadText("ShifterButtons", "Gear2Button")
-gear3Button := ReadText("ShifterButtons", "Gear3Button")
-gear4Button := ReadText("ShifterButtons", "Gear4Button")
-gear5Button := ReadText("ShifterButtons", "Gear5Button")
-gear6Button := ReadText("ShifterButtons", "Gear6Button")
-reverseButton := ReadText("ShifterButtons", "ReverseButton") ; physical reverse button
+; Combined Pedal Configuration
+combinedPedalAxis := ReadText("Pedals", "CombinedPedalAxis")
+combinedPedalCenter := ReadInt("Pedals", "CombinedPedalCenter", 50)
+brakeAxisIncreasesWhenPressed := ReadBool("Pedals", "BrakeAxisIncreasesWhenPressed", true)
+brakeActiveThreshold := ReadInt("Pedals", "BrakeActiveThreshold", 55)
 
-sequentialUpButtonNormal := ReadText("Sequential", "UpshiftButton", gear3Button) ; physical sequential upshift slot
-sequentialDownButtonNormal := ReadText("Sequential", "DownshiftButton", gear4Button) ; physical sequential downshift slot
+; NFSMW Game Keys
+forwardKey := ReadText("GameKeys", "ForwardKey")
+reverseKey := ReadText("GameKeys", "ReverseKey")
+handbrakeKey := ReadText("GameKeys", "HandbrakeKey")
+shiftUpKey := ReadText("GameKeys", "ShiftUpKey")
+shiftDownKey := ReadText("GameKeys", "ShiftDownKey")
 
-queuedShiftDelayMs := ReadInt("Sequential", "QueuedShiftDelayMs", 35) ; delay between queued sequential shifts on clutch release. Game cannot shift several times at once, must have delay between shifts.
-enableBrakeHoldGearReset := ReadBool("Sequential", "EnableBrakeHoldGearReset", true) ; true = sequential mode assumes gear 1 after sustained braking
-brakeHoldResetMs := ReadInt("Sequential", "BrakeHoldResetMs", 2000) ; milliseconds brake must be held before virtual gear resets to first
-brakeAxisIncreasesWhenPressed := ReadBool("Sequential", "BrakeAxisIncreasesWhenPressed", true)
-enablePaddleSync := ReadBool("Sequential", "EnablePaddleSync", true) ; true = paddle shifts update virtual gear state
-paddleUpshiftButton := ReadText("Sequential", "PaddleUpshiftButton") ; physical paddle upshift button
-paddleDownshiftButton := ReadText("Sequential", "PaddleDownshiftButton") ; physical paddle downshift button
-
-enableShifterHandbrake := ReadBool("ShifterHandbrake", "EnableShifterHandbrake", false) ; true = use h-shifter slot as handbrake in sequential mode
-invertShifterHandbrake := ReadBool("ShifterHandbrake", "InvertShifterHandbrake", false) ; true = use inverted shifter handbrake slot
-shifterHandbrakeButtonNormal := ReadText("ShifterHandbrake", "NormalButton", gear4Button) ; normal shifter handbrake slot, default is fourth gear
-shifterHandbrakeButtonInverted := ReadText("ShifterHandbrake", "InvertedButton", gear3Button) ; inverted shifter handbrake slot, default is third gear
-
-stallClutchReleaseThreshold := ReadInt("Stalling", "ClutchReleaseThreshold", 60) ; stall check occurs when clutch reaches this released position
-stallThrottleThreshold := ReadInt("Stalling", "ThrottleThreshold", 15) ; minimum throttle percentage required to prevent stalling
-restartClutchThreshold := ReadInt("Stalling", "RestartClutchThreshold", 15) ; clutch must be this close to fully pressed to restart
-combinedPedalCenter := ReadInt("Stalling", "CombinedPedalCenter", 50) ; resting value of combined gas/brake axis
-stallNeutralResendMs := ReadInt("Stalling", "NeutralResendMs", 250) ; interval between forced neutral commands while stalled
+; H-Pattern Shifter Mappings
+gear1Button := ReadText("HPattern", "Gear1Button")
+gear2Button := ReadText("HPattern", "Gear2Button")
+gear3Button := ReadText("HPattern", "Gear3Button")
+gear4Button := ReadText("HPattern", "Gear4Button")
+gear5Button := ReadText("HPattern", "Gear5Button")
+gear6Button := ReadText("HPattern", "Gear6Button")
+reverseButton := ReadText("HPattern", "ReverseButton")
 
 
-; =============================================================================
-; SECTION 8: RUNTIME STATE VARIABLES
-; =============================================================================
+; ==========================================================================================================================================================
+; SECTION 7: CONFIG LOADING - SEQUENTIAL, HANDBRAKE, STALLING, AND REVERSE ASSIST
+; ==========================================================================================================================================================
 
-virtualGear := 1 ; script-tracked gear for sequential mode
-pendingGear := 1 ; selected h-pattern gear while clutch is pressed
-pendingSequentialShiftCount := 0 ; stores net sequential shifts while clutch is held
-sequentialShifterArmed := true ; true = sequential shifter can trigger shifts after returning to neutral
-shifterHandbrakeArmed := true ; true = shifter handbrake can engage after shifter returns to neutral
-lastUpshiftPressed := false ; previous sequential upshift state
-lastDownshiftPressed := false ; previous sequential downshift state
-lastPaddleUpshiftPressed := false ; previous paddle upshift state for edge detection
-lastPaddleDownshiftPressed := false ; previous paddle downshift state for edge detection
-lastSentGear := 1 ; last direct gear sent to h-shifter mod
-lastClutchPressed := false ; previous clutch state
-clutchNeutralSent := false ; prevents neutral spam while clutch is held
-reverseHeld := false ; tracks reverse key hold state
-handbrakeHeld := false ; tracks handbrake key hold state
-brakeHoldStartTime := 0 ; stores when brake hold began for sequential reset heuristic
-brakeHoldResetTriggered := false ; prevents repeated gear resets during one brake hold
-brakeResetStallGraceActive := false ; true after sequential brake-hold gear reset triggers
-brakeResetReleaseTime := 0 ; time brake was released after the reset
-engineStalled := false ; true while transmission output is locked by stall simulation
-stallDetectionArmed := false ; becomes true after clutch is pressed while first gear is selected
-lastStallNeutralSendTime := 0 ; controls periodic neutral keepalive while stalled
-noInputStallStartTime := 0 ; stores when first gear entered a clutch-out, no-throttle condition
-lastNFSFocused := false  ; tracks whether nfs was focused during the previous scan
-scriptPaused := false ; tracks whether RealManual input handling is paused
-stopwatchStarted := false ; true after stopwatch has been started
-stopwatchRunning := false ; true while current stopwatch segment is counting
-stopwatchStartTime := 0 ; A_TickCount when current running period began
-stopwatchAccumulatedMs := 0 ; elapsed time preserved across pause/resume
-stopwatchLaps := [] ; stores completed lap durations
-stopwatchToolTipId := 2 ; keeps stopwatch separate from normal RealManual tooltip #1
+; Sequential Configuration
+invertSequentialShifter := ReadBool("Sequential", "InvertSequentialShifter", false)
+sequentialUpshiftButton := ReadText("Sequential", "SequentialUpshiftButton")
+sequentialDownshiftButton := ReadText("Sequential", "SequentialDownshiftButton")
+paddleUpshiftButton := ReadText("Sequential", "PaddleUpshiftButton")
+paddleDownshiftButton := ReadText("Sequential", "PaddleDownshiftButton")
+enableBrakeHoldGearReset := ReadBool("Sequential", "EnableBrakeHoldGearReset", true)
+brakeHoldResetMs := ReadInt("Sequential", "BrakeHoldResetMs", 2000)
+brakeResetThreshold := ReadInt("Sequential", "BrakeResetThreshold", 70)
+queuedShiftDelayMs := ReadInt("Sequential", "QueuedShiftDelayMs", 35)
 
+; Handbrake Configuration
+handbrakeAxis := ReadText("Handbrake", "HandbrakeAxis")
+handbrakeThreshold := ReadInt("Handbrake", "HandbrakeThreshold", 20)
+enableShifterHandbrake := ReadBool("Handbrake", "EnableShifterHandbrake", false)
+shifterHandbrakeButton := ReadText("Handbrake", "ShifterHandbrakeButton")
 
+; Stalling Configuration
+enableStalling := ReadBool("Stalling", "EnableStalling", false)
+clutchReleaseThreshold := ReadInt("Stalling", "ClutchReleaseThreshold", 60)
+throttleThreshold := ReadInt("Stalling", "ThrottleThreshold", 15)
+restartClutchThreshold := ReadInt("Stalling", "RestartClutchThreshold", 15)
+neutralResendMs := ReadInt("Stalling", "NeutralResendMs", 50)
+throttleBlipMs := ReadInt("Stalling", "ThrottleBlipMs", 500)
+noInputStallDelayMs := ReadInt("Stalling", "NoInputStallDelayMs", 700)
+brakeResetStallGraceMs := ReadInt("Stalling", "BrakeResetStallGraceMs", 100)
 
-; =============================================================================
-; SECTION 9: INPUT AND OUTPUT MAPS
-; =============================================================================
-
-gearButtons := Map() ; creates physical gear button map
-gearButtons[gear1Button] := 1 ; maps first gear button, etc.
-gearButtons[gear2Button] := 2
-gearButtons[gear3Button] := 3
-gearButtons[gear4Button] := 4
-gearButtons[gear5Button] := 5
-gearButtons[gear6Button] := 6
-
-gearKeys := Map() ; creates output gear key map
-gearKeys[0] := neutralKey
-gearKeys[1] := ReadText("OutputKeys", "Gear1Key", "1") ; output key for first gear, etc.
-gearKeys[2] := ReadText("OutputKeys", "Gear2Key", "2")
-gearKeys[3] := ReadText("OutputKeys", "Gear3Key", "3")
-gearKeys[4] := ReadText("OutputKeys", "Gear4Key", "4")
-gearKeys[5] := ReadText("OutputKeys", "Gear5Key", "5")
-gearKeys[6] := ReadText("OutputKeys", "Gear6Key", "6")
+; Reverse Assist Configuration
+enableReverseAssist := ReadBool("ReverseAssist", "EnableReverseAssist", false)
+engageBrakeThreshold := ReadInt("ReverseAssist", "EngageBrakeThreshold", 60)
 
 
-; =============================================================================
-; SECTION 10: LOW-LEVEL OUTPUT HELPERS & SAFETY
-; =============================================================================
+; ==========================================================================================================================================================
+; SECTION 8: CONFIG LOADING - TIMING, STOPWATCH, AND STATISTICS
+; ==========================================================================================================================================================
 
-; =============================================================================
-; TapKey(keyName)
-; -----------------------------------------------------------------------------
-; Sends one controlled key tap.
-;
-; The key is pressed, held for keyHoldMs milliseconds, then released.
-; More reliable than an instant tap because older games and ASI plugins
-; can miss synthetic key presses that are too short.
-; =============================================================================
-TapKey(keyName) {
-    global keyHoldMs
-    SendEvent "{" keyName " down}" ; presses output key
-    Sleep keyHoldMs ; holds output key briefly
-    SendEvent "{" keyName " up}" ; releases output key
-} ; end tapkey
+; Timing Configuration
+keyHoldMs := ReadInt("Timing", "KeyHoldMs", 18)
+scanIntervalMs := ReadInt("Timing", "ScanIntervalMs", 5)
 
-; =============================================================================
-; TapThrottleBlip()
-; -----------------------------------------------------------------------------
-; Briefly holds the configured forward key for stall and engine-start effects.
-;
-; =============================================================================
-TapThrottleBlip() {
-    global forwardKey, throttleBlipMs
+; Internal Timing
+mainLoopIdleIntervalMs := 100 ; slower MainLoop polling while NFSMW is unfocused
 
-    SendEvent "{" forwardKey " down}"
-    Sleep throttleBlipMs
-    SendEvent "{" forwardKey " up}"
-} ; end tapthrottleblip
+; Stopwatch Configuration
+stopwatchRefreshMs := ReadInt("Stopwatch", "StopwatchRefreshMs", 50)
+stopwatchMaxLines := ReadInt("Stopwatch", "StopwatchMaxLines", 10)
 
-; =============================================================================
-; SendGearToMod(targetGear)
-; -----------------------------------------------------------------------------
-; Sends a direct gear command to MW2005-HShifter that can register direct gears
-;
-; Gear model:
-;   0  = neutral
-;   1-6 = forward gears
-;   -1 = reverse state marker used internally in HandleReverse()
-; =============================================================================
-SendGearToMod(targetGear, force := false) {
-    global gearKeys, lastSentGear
+; Statistics Configuration
+trackShifts := ReadBool("Statistics", "TrackShifts", false)
+trackStalls := ReadBool("Statistics", "TrackStalls", false)
+trackRaceRestarts := ReadBool("Statistics", "TrackRaceRestarts", false)
+clearAllTimeOnStartup := ReadBool("Statistics", "ClearAllTimeOnStartup", false)
 
-    if !force && targetGear = lastSentGear { ; skips duplicate gear only when force is disabled
-        return ; prevents repeated key spam
-    } ; end duplicate guard
 
-    if !gearKeys.Has(targetGear) { ; checks whether target gear exists in output map
-        return ; invalid gear target
-    } ; end gear map guard
+; ==========================================================================================================================================================
+; SECTION 9: RUNTIME STATE VARIABLES
+; ==========================================================================================================================================================
 
-    TapKey(gearKeys[targetGear]) ; sends mapped gear key
-    lastSentGear := targetGear ; stores last successfully requested gear
-} ; end sendgeartomod
+; Transmission
+virtualGear := 1 ; best-known current game gear across transmission modes
+lastSentGear := 1 ; last successfully sent direct H-Shifter gear; NFSMW starts in 1st
 
-; =============================================================================
-; ReleaseHeldOutputsQuietly()
-; -----------------------------------------------------------------------------
-; Releases any game output keys that RealManual may currently be holding.
-;
-; Prevents stuck brake/reverse or handbrake inputs while RealManual is not
-; actively controlling the game.
-; =============================================================================
-ReleaseHeldOutputsQuietly() {
-    global reverseHeld, reverseKey, handbrakeHeld, handbrakeKey
+; H-Pattern
+lastHPatternSelectedGear := -2 ; last known physical H-pattern position; -2 = unknown
+reverseCommandLatched := false ; prevents repeated direct reverse commands during one brake engagement
 
-    if reverseHeld {
-        SendEvent "{" reverseKey " up}"  ; releases reverse output key
-        reverseHeld := false
-    }
+; Sequential / Paddle / Keyboard
+pendingSequentialShiftCount := 0 ; net sequential shifts queued while clutch is held
+sequentialShifterArmed := false ; true after sequential lever returns to a valid neutral position
+paddleSyncArmed := false ; true after paddle inputs return to a valid released state
+lastUpshiftPressed := false
+lastDownshiftPressed := false
+lastPaddleUpshiftPressed := false
+lastPaddleDownshiftPressed := false
+keyboardShiftSyncArmed := false
+lastKeyboardUpshiftPressed := false
+lastKeyboardDownshiftPressed := false
 
-    if handbrakeHeld {
-        SendEvent "{" handbrakeKey " up}"
-        handbrakeHeld := false
+; Clutch Transaction
+lastClutchPressed := false ; previous clutch state used for clutch-edge detection
+clutchNeutralSent := false ; true after clutch-to-neutral has sent neutral for current clutch hold
+
+; Handbrake
+shifterHandbrakeArmed := false ; true after shifter-handbrake input returns to its resting state
+handbrakeHeld := false
+
+; Sequential Brake Reset / Reverse Assist Eligibility
+brakeHoldStartTime := 0 ; A_TickCount when the current hard-brake hold began
+brakeHoldResetTriggered := false ; prevents repeated first-gear resets during one brake hold
+brakeResetStallGraceActive := false ; true while post-reset stall protection is active
+brakeResetReleaseTime := 0 ; A_TickCount when brake release began the stall-grace period
+sequentialReverseAssistEligible := false ; true when current brake-reset sequence began outside neutral
+
+; Reverse Assist
+reverseAssistHeld := false ; true while RealManual is holding the digital reverse key
+
+; Stall / Engine
+engineStalled := false
+stallDetectionArmed := false ; true when a clutch-release stall check is armed
+stallSuppressedUntilShift := false ; true after silent new-game reset until next accepted driver shift
+noInputStallStartTime := 0 ; A_TickCount when sustained first-gear low-throttle condition began
+lastStallNeutralSendTime := 0 ; A_TickCount of the last stalled-state neutral keepalive
+
+; Script / Application
+lastNFSFocused := false ; true if NFSMW was focused during the previous MainLoop scan
+scriptPaused := false
+mainLoopTimerIntervalMs := 0 ; currently scheduled MainLoop timer interval; 0 = stopped
+dynamicHotkeyRegistrationResults := [] ; startup results for configurable hotkey registration
+
+; Video Settings Menu Automation
+videoSettingsSequenceActive := false
+videoSettingsSequence := [] ; ordered menu-navigation steps for the active macro
+videoSettingsSequenceIndex := 0 ; next menu-navigation step waiting to execute
+
+; NFSMW Process Tracking
+nfsProcessPid := 0 ; PID of the currently known speed.exe instance
+nfsProcessSeen := false ; true after at least one NFSMW process has been observed
+nfsInstanceResetPending := false ; true when a replacement game instance needs internal synchronization
+
+; Stopwatch
+stopwatchStarted := false
+stopwatchRunning := false
+stopwatchStartTime := 0
+stopwatchAccumulatedMs := 0
+stopwatchLaps := []
+stopwatchToolTipId := 2 ; for the overlay
+
+; Statistics Counters
+statsFile := A_ScriptDir "\stats.txt" ; persistent statistics file beside RealManual
+sessionProcessPid := 0 ; NFSMW PID that owns the current statistics session
+sessionShiftCount := 0
+sessionStallCount := 0
+sessionRaceRestartCount := 0
+allTimeShiftCount := 0
+allTimeStallCount := 0
+allTimeRaceRestartCount := 0
+statsLastGear := 1
+
+; Statistics Display
+showShiftStats := false
+showStallStats := false
+showRaceRestartStats := false
+statsToolTipId := 3
+
+; Shared Overlay Layout
+overlayActivationCounter := 0 ; monotonically increasing overlay activation sequence
+stopwatchOverlayOrder := 0 ; activation order of stopwatch overlay; 0 = inactive
+statsOverlayOrder := 0
+overlayPrimaryX := 20 ; horizontal position used by the first active overlay
+overlaySecondaryX := 260 ; horizontal position used by the second active overlay
+overlayY := 20 ; shared vertical position for stopwatch and statistics overlays
+
+; ==========================================================================================================================================================
+; SECTION 10: INPUT / OUTPUT MAPS AND BINDING SANITIZATION
+; ==========================================================================================================================================================
+
+hShifterProtocol := [
+    [-1, "0", "H-Shifter Reverse Sync"],
+    [ 0, "n", "H-Shifter Neutral Sync"],
+    [ 1, "1", "H-Shifter Gear 1 Sync"],
+    [ 2, "2", "H-Shifter Gear 2 Sync"],
+    [ 3, "3", "H-Shifter Gear 3 Sync"],
+    [ 4, "4", "H-Shifter Gear 4 Sync"],
+    [ 5, "5", "H-Shifter Gear 5 Sync"],
+    [ 6, "6", "H-Shifter Gear 6 Sync"]
+]
+
+gearKeys := Map()
+reservedProtocolKeys := Map()
+reservedProtocolVks := Map()
+
+for protocolEntry in hShifterProtocol {
+    logicalGear := protocolEntry[1]
+    protocolKey := protocolEntry[2]
+    protocolPurpose := protocolEntry[3]
+
+    gearKeys[logicalGear] := protocolKey
+
+    ; normal textual lookup
+    reservedProtocolKeys[StrLower(protocolKey)] := protocolPurpose
+
+    ; physical keyboard lookup
+    try {
+        protocolVk := GetKeyVK(protocolKey)
+
+        if protocolVk {
+            reservedProtocolVks[protocolVk] := protocolPurpose
+        }
     }
 }
 
+; ==========================================================================================================================================================
+; GetReservedProtocolConflict(binding)
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
+; Checks any USER-CONFIGURED binding against MW2005-HShifter's fixed keyboard protocol.
+;
+; The H-Shifter protocol owns these physical keyboard keys exclusively:
+;
+;   0   = reverse
+;   N   = neutral
+;   1-6 = forward gears
+;
+; The check applies to:
+;   - RealManual hotkeys
+;   - NFSMW output bindings
+;   - physical shifter mappings
+;   - sequential shifter mappings
+;   - paddle mappings
+;   - shifter-handbrake mappings
+;   - configured axes/input names
+;
+; Modifier-prefixed hotkeys are reduced to their underlying key.
+; Custom AHK combinations are checked component-by-component.
+;
+; Both normal key names and alternate VK/SC representations are checked.
+;
+; Returns:
+;   protocol description = a reserved H-Shifter physical key was found
+;   ""                   = no reserved-key conflict
+; ==========================================================================================================================================================
+GetReservedProtocolConflict(binding) {
+    global reservedProtocolKeys
+    global reservedProtocolVks
 
-; =============================================================================
-; SECTION 11: LOW-LEVEL INPUT READERS
-; =============================================================================
+    binding := Trim(binding)
 
-; =============================================================================
+    if binding = "" {
+        return ""
+    } ; end blank-binding guard
+
+    bindingParts := StrSplit(binding, "&")
+
+    for bindingPart in bindingParts {
+        normalizedKey := Trim(bindingPart)
+        normalizedKey := RegExReplace(normalizedKey, "i)\s+up$")
+        ; removes AHK hotkey prefixes:
+        ;   +  Shift
+        ;   ^  Ctrl
+        ;   !  Alt
+        ;   #  Win
+        ;   <  left modifier
+        ;   >  right modifier
+        ;   *  wildcard
+        ;   ~  pass-through
+        ;   $  keyboard hook
+        normalizedKey := RegExReplace(normalizedKey, "^[~*$<>!^+#]+")
+        normalizedKey := Trim(normalizedKey)
+        normalizedLower := StrLower(normalizedKey)
+
+        ; direct name match
+        if reservedProtocolKeys.Has(normalizedLower) {
+            return reservedProtocolKeys[normalizedLower]
+        } ; end direct protocol-name match
+
+        ; physical virtual-key match catches alternate names that resolve to the same keyboard key
+        try {
+            bindingVk := GetKeyVK(normalizedKey)
+
+            if bindingVk && reservedProtocolVks.Has(bindingVk) {
+                return reservedProtocolVks[bindingVk]
+            }
+        }
+    } ; end binding-component loop
+
+    return ""
+} ; end getreservedprotocolconflict
+
+; ==========================================================================================================================================================
+; SanitizeUserConfiguredKey(binding)
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
+; Applies the shared H-Shifter reserved-key policy to a user-configured binding.
+;
+; Returns:
+;   original binding = no H-Shifter conflict
+;   ""               = binding conflicts with the fixed H-Shifter protocol
+;
+; This is intended for user-configured runtime bindings other than dynamic hotkeys. 
+; Dynamic hotkeys use the same conflict checker inside TryRegisterHotkey() because they also need to record a registration result.
+; ==========================================================================================================================================================
+SanitizeUserConfiguredKey(binding) {
+
+    if GetReservedProtocolConflict(binding) != "" {
+        return ""
+    } ; end reserved binding
+
+    return Trim(binding)
+} ; end sanitizeuserconfiguredkey
+
+; ==========================================================================================================================================================
+; SanitizeUserConfiguredBindings()
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
+; Applies the fixed H-Shifter reservation policy to every user-configured
+; runtime binding other than dynamic hotkeys.
+;
+; Dynamic hotkeys are handled separately by TryRegisterHotkey() because their
+; conflict must be recorded as a registration result.
+;
+; A reserved user binding becomes blank at runtime so no later input/output path
+; can accidentally use an H-Shifter protocol key.
+; ==========================================================================================================================================================
+SanitizeUserConfiguredBindings() {
+    global clutchAxis
+    global combinedPedalAxis
+    global handbrakeAxis
+
+    global forwardKey
+    global reverseKey
+    global handbrakeKey
+    global shiftUpKey
+    global shiftDownKey
+
+    global gear1Button
+    global gear2Button
+    global gear3Button
+    global gear4Button
+    global gear5Button
+    global gear6Button
+    global reverseButton
+
+    global sequentialUpshiftButton
+    global sequentialDownshiftButton
+
+    global paddleUpshiftButton
+    global paddleDownshiftButton
+
+    global shifterHandbrakeButton
+
+    ; axes/general physical inputs
+    clutchAxis := SanitizeUserConfiguredKey(clutchAxis)
+    combinedPedalAxis := SanitizeUserConfiguredKey(combinedPedalAxis)
+    handbrakeAxis := SanitizeUserConfiguredKey(handbrakeAxis)
+
+    ; NFSMW output bindings
+    forwardKey := SanitizeUserConfiguredKey(forwardKey)
+    reverseKey := SanitizeUserConfiguredKey(reverseKey)
+    handbrakeKey := SanitizeUserConfiguredKey(handbrakeKey)
+    shiftUpKey := SanitizeUserConfiguredKey(shiftUpKey)
+    shiftDownKey := SanitizeUserConfiguredKey(shiftDownKey)
+
+    ; H-pattern physical mappings
+    gear1Button := SanitizeUserConfiguredKey(gear1Button)
+    gear2Button := SanitizeUserConfiguredKey(gear2Button)
+    gear3Button := SanitizeUserConfiguredKey(gear3Button)
+    gear4Button := SanitizeUserConfiguredKey(gear4Button)
+    gear5Button := SanitizeUserConfiguredKey(gear5Button)
+    gear6Button := SanitizeUserConfiguredKey(gear6Button)
+    reverseButton := SanitizeUserConfiguredKey(reverseButton)
+
+    ; sequential physical mappings
+    sequentialUpshiftButton := SanitizeUserConfiguredKey(sequentialUpshiftButton)
+    sequentialDownshiftButton := SanitizeUserConfiguredKey(sequentialDownshiftButton)
+
+    ; paddle synchronization inputs
+    paddleUpshiftButton := SanitizeUserConfiguredKey(paddleUpshiftButton)
+    paddleDownshiftButton := SanitizeUserConfiguredKey(paddleDownshiftButton)
+
+    ; shifter-handbrake input
+    shifterHandbrakeButton := SanitizeUserConfiguredKey(shifterHandbrakeButton)
+} ; end sanitizeuserconfiguredbindings
+
+SanitizeUserConfiguredBindings()
+
+; ==========================================================================================================================================================
+; Precompute Auxiliary Input Configuration
+; ==========================================================================================================================================================
+
+paddleSyncConfigured :=
+    paddleUpshiftButton != ""
+    && paddleDownshiftButton != ""
+
+keyboardShiftSyncConfigured :=
+    shiftUpKey != ""
+    && shiftDownKey != ""
+
+analogHandbrakeConfigured :=
+    handbrakeAxis != ""
+
+; ==========================================================================================================================================================
+; Precompute Sequential / Shifter-Handbrake Binding Conflict
+; ==========================================================================================================================================================
+
+shifterHandbrakeConflict :=
+    shifterHandbrakeButton != ""
+    && (
+        (
+            sequentialUpshiftButton != ""
+            && shifterHandbrakeButton = sequentialUpshiftButton
+        )
+        || (
+            sequentialDownshiftButton != ""
+            && shifterHandbrakeButton = sequentialDownshiftButton
+        )
+    )
+
+; ==========================================================================================================================================================
+; RefreshActiveSequentialBindings()
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
+; Resolves the active sequential upshift/downshift bindings from the configured
+; physical shifter mappings and current sequential inversion state.
+;
+; Called at startup and whenever sequential inversion changes.
+; ==========================================================================================================================================================
+RefreshActiveSequentialBindings() {
+    global invertSequentialShifter
+    global sequentialUpshiftButton
+    global sequentialDownshiftButton
+
+    global activeSequentialUpshiftButton
+    global activeSequentialDownshiftButton
+
+    if invertSequentialShifter {
+        activeSequentialUpshiftButton := sequentialDownshiftButton
+        activeSequentialDownshiftButton := sequentialUpshiftButton
+    } else {
+        activeSequentialUpshiftButton := sequentialUpshiftButton
+        activeSequentialDownshiftButton := sequentialDownshiftButton
+    } ; end sequential mapping resolution
+} ; end refreshactivesequentialbindings
+
+RefreshActiveSequentialBindings()
+
+; build sanitized H-pattern forward-gear map
+gearButtons := Map()
+
+for mapping in [
+    [gear1Button, 1],
+    [gear2Button, 2],
+    [gear3Button, 3],
+    [gear4Button, 4],
+    [gear5Button, 5],
+    [gear6Button, 6]
+] {
+    buttonName := mapping[1]
+    gearNumber := mapping[2]
+
+    if buttonName = "" {
+        continue
+    } ; end blank mapping guard
+
+    if gearButtons.Has(buttonName) {
+        continue
+    } ; end duplicate mapping guard
+
+    gearButtons[buttonName] := gearNumber
+} ; end physical gear map construction
+
+hPatternMappingValid :=
+    gearButtons.Count = 6
+    && reverseButton != ""
+    && !gearButtons.Has(reverseButton)
+
+; ==========================================================================================================================================================
+; SECTION 11: LOW-LEVEL OUTPUT HELPERS & SAFETY
+; ==========================================================================================================================================================
+
+; ==========================================================================================================================================================
+; SendKeyForDuration(keyName, holdMs)
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
+; Presses one configured output key, holds it for the requested duration, then releases it.
+;
+; Centralizes timed key output used by normal key taps and longer simulated throttle blips.
+; ==========================================================================================================================================================
+SendKeyForDuration(keyName, holdMs) {
+    if keyName = "" {
+        return false
+    } ; end blank output guard
+
+    try {
+        SendEvent "{" keyName " down}"
+        Sleep holdMs
+        SendEvent "{" keyName " up}"
+        return true
+    } catch {
+        ; release
+        try {
+            SendEvent "{" keyName " up}"
+        }
+
+        return false
+    } ; end protected timed output
+} ; end sendkeyforduration
+
+; ==========================================================================================================================================================
+; TapKey(keyName)
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
+; Sends one controlled key tap.
+;
+; The key is pressed, held for keyHoldMs milliseconds, then released.
+; More reliable than an instant tap because older games and ASI plugins can miss synthetic key presses that are too short.
+; ==========================================================================================================================================================
+TapKey(keyName) {
+    global keyHoldMs
+
+    return SendKeyForDuration(keyName, keyHoldMs)
+} ; end tapkey
+
+; ==========================================================================================================================================================
+; SaveNvidiaInstantReplay(*)
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
+; Sends NVIDIA Overlay's fixed Alt+F10 shortcut for saving the current Instant Replay buffer.
+;
+; RealManual's configurable hotkey determines which physical controller button invokes this function. The NVIDIA output shortcut itself remains Alt+F10.
+; ==========================================================================================================================================================
+SaveNvidiaInstantReplay(*) { ; handles the configurable realmanual instant-replay hotkey
+    SendEvent "!{F10}" ; sends alt+f10 to the nvidia overlay
+} ; end savenvidiainstantreplay
+
+
+; ==========================================================================================================================================================
+; CaptureNvidiaScreenshot(*)
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
+; Sends NVIDIA Overlay's fixed Alt+F1 screenshot shortcut.
+;
+; RealManual's configurable hotkey determines which physical controller button invokes this function. The NVIDIA output shortcut itself remains Alt+F1.
+; ==========================================================================================================================================================
+CaptureNvidiaScreenshot(*) { ; handles the configurable realmanual screenshot hotkey
+    SendEvent "!{F1}" ; sends alt+f1 to the nvidia overlay
+} ; end capturenvidiascreenshot
+
+; ==========================================================================================================================================================
+; TrySetOutputKeyState(keyName, pressed)
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
+; Presses or releases one configured output key.
+;
+; Used for outputs that must remain held across multiple input scans rather than being sent as a short TapKey() command.
+; ==========================================================================================================================================================
+TrySetOutputKeyState(keyName, pressed) {
+    if keyName = "" {
+        return false
+    } ; end blank output guard
+
+    try {
+        if pressed {
+            SendEvent "{" keyName " down}"
+        } else {
+            SendEvent "{" keyName " up}"
+        }
+
+        return true
+    } catch {
+        if pressed {
+            try {
+                SendEvent "{" keyName " up}"
+            }
+        }
+
+        return false
+    } ; end protected output-state change
+} ; end trysetoutputkeystate
+
+; ==========================================================================================================================================================
+; TapThrottleBlip()
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
+; Briefly holds the configured forward key for stall and engine-start effects.
+; ==========================================================================================================================================================
+TapThrottleBlip() {
+    global forwardKey
+    global throttleBlipMs
+
+    return SendKeyForDuration(forwardKey, throttleBlipMs)
+} ; end tapthrottleblip
+
+; ==========================================================================================================================================================
+; SendGearToMod(targetGear, force := false)
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
+; Sends a direct gear command to MW2005-HShifter.
+;
+; Gear model:
+;   -1  = reverse
+;    0  = neutral
+;   1-6 = forward gears
+;
+; force = false:
+;   suppresses a duplicate command when targetGear matches lastSentGear
+;
+; force = true:
+;   bypasses the cache when the game may have changed gear independently or when RealManual is deliberately establishing an authoritative gear state.
+;
+; Returns:
+;   true  = requested gear was already established or was sent successfully
+;   false = target gear was invalid or the output command failed
+; ==========================================================================================================================================================
+SendGearToMod(targetGear, force := false) {
+    global gearKeys
+    global lastSentGear
+
+    ; duplicate command suppression
+    if !force && targetGear = lastSentGear {
+        ; requested state is already the best-known direct gear state
+        return true
+    } ; end duplicate guard
+
+    ; target validation
+    if !gearKeys.Has(targetGear) {
+        return false
+    } ; end invalid gear guard
+
+    ; fixed H-Shifter protocol command
+    if !TapKey(gearKeys[targetGear]) {
+        return false
+    } ; end failed output guard
+
+    ; only commits the cache after the output actually succeeds.
+    lastSentGear := targetGear
+
+    return true
+} ; end sendgeartomod
+
+; ==========================================================================================================================================================
+; ReleaseReverseAssistQuietly()
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
+; Releases the digital reverse-assist output if RealManual currently holds it.
+; ==========================================================================================================================================================
+ReleaseReverseAssistQuietly() {
+    global reverseAssistHeld
+    global reverseKey
+
+    if reverseAssistHeld {
+        if TrySetOutputKeyState(
+            reverseKey,
+            false
+        ) {
+            reverseAssistHeld := false
+        }
+    } ; end reverse-assist release
+} ; end releasereverseassistquietly
+
+; ==========================================================================================================================================================
+; ReleaseHeldOutputsQuietly()
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
+; Releases any game output keys that RealManual may currently be holding.
+;
+; Prevents stuck handbrake inputs while RealManual is not actively controlling the game.
+; ==========================================================================================================================================================
+ReleaseHeldOutputsQuietly() {
+    global handbrakeHeld
+    global handbrakeKey
+
+    if handbrakeHeld {
+        if TrySetOutputKeyState(handbrakeKey, false) {
+            handbrakeHeld := false
+        }
+    } ; end handbrake release
+
+    ReleaseReverseAssistQuietly()
+} ; end releaseheldoutputsquietly
+
+; ==========================================================================================================================================================
+; HandleScriptExit(*)
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
+; Performs best-effort output cleanup when RealManual exits or reloads.
+;
+; Explicitly releases every gameplay output key that RealManual may hold so a key cannot remain logically pressed if the script exits during an output
+; operation.
+; ==========================================================================================================================================================
+HandleScriptExit(*) {
+    global gearKeys
+    global handbrakeKey
+    global forwardKey
+    global reverseKey
+    global shiftUpKey
+    global shiftDownKey
+
+    TrySetOutputKeyState(handbrakeKey, false)
+    TrySetOutputKeyState(forwardKey, false)
+    TrySetOutputKeyState(reverseKey, false)
+    TrySetOutputKeyState(shiftUpKey, false)
+    TrySetOutputKeyState(shiftDownKey, false)
+
+    for _, gearKey in gearKeys {
+        TrySetOutputKeyState(
+            gearKey,
+            false
+        )
+    }
+} ; end handlescriptexit
+
+
+; ==========================================================================================================================================================
+; SECTION 12: LOW-LEVEL INPUT READERS
+; ==========================================================================================================================================================
+
+; ==========================================================================================================================================================
+; TryGetInputState(inputName, &value)
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
+; Attempts to read a configured keyboard, joystick button, or joystick axis.
+;
+; Unlike SafeGetKeyState(), this preserves the distinction between:
+;   - a valid input that is currently released / zero
+;   - an input that could not be read
+;
+; Returns:
+;   true  = input was read successfully
+;   false = input was blank, invalid, unavailable, or unreadable
+; ==========================================================================================================================================================
+TryGetInputState(inputName, &value) {
+    value := ""
+
+    if inputName = "" {
+        return false
+    } ; end blank input guard
+
+    try {
+        readValue := GetKeyState(inputName)
+
+        if readValue = "" {
+            return false
+        } ; end empty result guard
+
+        value := readValue
+        return true
+    } catch {
+        return false
+    } ; end protected read
+} ; end trygetinputstate
+
+; ==========================================================================================================================================================
+; TryGetPhysicalKeyState(keyName, &pressed)
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
+; Reads only the physical state of a keyboard key.
+;
+; Unlike TryGetInputState(), synthetic SendEvent output does not count as a physical press. 
+; This allows RealManual to monitor the same NFSMW shift keys it uses for output without detecting its own generated shift commands.
+;
+; Returns:
+;   true  = physical key state was read successfully
+;   false = key was blank, invalid, or unreadable
+; ==========================================================================================================================================================
+TryGetPhysicalKeyState(keyName, &pressed) {
+    pressed := false
+
+    if keyName = "" {
+        return false
+    } ; end blank key guard
+
+    try {
+        pressed := GetKeyState(
+            keyName,
+            "P"
+        )
+
+        return true
+    } catch {
+        return false
+    } ; end protected physical read
+} ; end trygetphysicalkeystate
+
+; ==========================================================================================================================================================
 ; SafeGetKeyState()
-; -----------------------------------------------------------------------------
-; Safely reads a keyboard, joystick button, or joystick axis without allowing
-; missing devices, invalid input names, or empty values to crash the script.
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
+; Safely reads a keyboard, joystick button, or joystick axis without allowing missing devices, invalid input names, or empty values to crash the script.
 ;
 ; Returns:
 ;   Actual input value when successful.
 ;   Fallback value when input is blank, invalid, unavailable, or unreadable.
-; =============================================================================
+; ==========================================================================================================================================================
 SafeGetKeyState(inputName, fallback := false) {
-    if Trim(inputName) = "" { ; checks for blank input names
-        return fallback
-    } ; end blank check
+    if TryGetInputState(inputName, &value) {
+        return value
+    }
 
-    try {
-        value := GetKeyState(inputName) ; reads keyboard, joystick button, or joystick axis
-        return value = "" ? fallback : value ; replaces empty input values with fallback
-    } catch {
-        return fallback
-    } ; end try/catch
+    return fallback
 } ; end safegetkeystate
 
-; =============================================================================
-; IsClutchPressed()
-; -----------------------------------------------------------------------------
-; Reads the configured clutch axis and determines whether the clutch is pressed.
+; ==========================================================================================================================================================
+; ReadClutchAxis()
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
+; Reads the current raw clutch-axis position.
+;
+; For the tested Logitech setup:
+;   0   = fully pressed
+;   100 = fully released
+;
+; An unavailable clutch axis safely reports fully released.
+; ==========================================================================================================================================================
+ReadClutchAxis() {
+    global clutchAxis
+
+    return SafeGetKeyState(clutchAxis, 100)
+} ; end readclutchaxis
+
+; ==========================================================================================================================================================
+; ReadCombinedPedalAxis()
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
+; Reads the current raw shared gas/brake-axis position.
+;
+; combinedPedalCenter represents the released/resting position between the gas and brake sides of the shared axis.
+;
+; An unavailable combined pedal axis safely reports the resting center.
+; ==========================================================================================================================================================
+ReadCombinedPedalAxis() {
+    global combinedPedalAxis
+    global combinedPedalCenter
+
+    return SafeGetKeyState(
+        combinedPedalAxis,
+        combinedPedalCenter
+    )
+} ; end readcombinedpedalaxis
+
+; ==========================================================================================================================================================
+; IsClutchPressed(clutchValue)
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
+; Determines whether a previously read clutch-axis value represents a pressed clutch.
 ;
 ; For the tested Logitech setup, clutch value decreases when pressed.
 ;
-; Clutch pressed if clutchAxisValue < clutchThreshold
-; =============================================================================
-IsClutchPressed() {
-    global clutchAxis, clutchThreshold
-    return SafeGetKeyState(clutchAxis, 100) < clutchThreshold ; missing clutch reads as released
+; Clutch pressed if clutchValue < clutchThreshold
+; ==========================================================================================================================================================
+IsClutchPressed(clutchValue) {
+    global clutchThreshold
+
+    return clutchValue < clutchThreshold
 } ; end isclutchpressed
 
-; =============================================================================
+; ==========================================================================================================================================================
 ; ReadSelectedGear()
-; -----------------------------------------------------------------------------
-; Reads the physical H-pattern shifter position.
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
+; Reads the complete physical H-pattern shifter state.
 ;
-; The function checks each configured gear button and returns:
-;   1-6 when a gear button is active
-;   0 when no gear button is active
+; Returns:
+;   -2 = shifter state cannot be determined safely
+;   -1 = reverse
+;    0 = neutral
+;   1-6 = selected forward gear
 ;
-; The 0 return value represents the shifter's physical neutral/middle position.
-; =============================================================================
+; Unknown is returned when:
+;   - fewer than six unique forward mappings are available
+;   - reverse is missing or duplicates a forward mapping
+;   - any required shifter input cannot be read
+;   - more than one physical gear position appears active at the same time
+;
+; Neutral is returned only when all seven physical gear positions can be read successfully and none is selected.
+; ==========================================================================================================================================================
 ReadSelectedGear() {
     global gearButtons
+    global reverseButton
+    global hPatternMappingValid
 
-    for buttonName, gearNumber in gearButtons { ; loops through gear mappings
-        if SafeGetKeyState(buttonName, false) { ; checks active gear button
-            return gearNumber
-        } ; end active check
-    } ; end loop
+    if !hPatternMappingValid {
+        return -2
+    } ; end mapping-validity guard
 
-    return 0 ; no button means neutral
+    selectedGear := 0
+    activePositionCount := 0
+
+    for buttonName, gearNumber in gearButtons {
+        if !TryGetInputState(buttonName, &buttonPressed) {
+            return -2
+        } ; end unreadable forward input
+
+        if buttonPressed {
+            selectedGear := gearNumber
+            activePositionCount++
+        } ; end active forward position
+    } ; end forward gear scan
+
+    if !TryGetInputState(reverseButton, &reversePressed) {
+        return -2
+    } ; end unreadable reverse input
+
+    if reversePressed {
+        selectedGear := -1
+        activePositionCount++
+    } ; end reverse position
+
+    if activePositionCount > 1 {
+        return -2
+    } ; end ambiguous physical state
+
+    return selectedGear
 } ; end readselectedgear
 
-; =============================================================================
-; GetSequentialUpshiftButton()
-; -----------------------------------------------------------------------------
-; Returns the physical input used for sequential upshift.
-; =============================================================================
-GetSequentialUpshiftButton() {
-    global invertSequentialAxis, sequentialUpButtonNormal, sequentialDownButtonNormal
-    return invertSequentialAxis ? sequentialDownButtonNormal : sequentialUpButtonNormal ; returns swapped or normal input
-} ; end getsequentialupshiftbutton
-
-; =============================================================================
-; GetSequentialDownshiftButton()
-; =============================================================================
-GetSequentialDownshiftButton() {
-    global invertSequentialAxis, sequentialUpButtonNormal, sequentialDownButtonNormal
-    return invertSequentialAxis ? sequentialUpButtonNormal : sequentialDownButtonNormal
-} ; end getsequentialdownshiftbutton
-
-; =============================================================================
-; IsBrakePressedForSequentialReset()
-; -----------------------------------------------------------------------------
-; Determines whether the brake pedal has crossed the configured threshold used
-; by the sequential brake-hold reset heuristic.
-; =============================================================================
-IsBrakePressedForSequentialReset() {
-    global brakeAxis, brakeThreshold, brakeAxisIncreasesWhenPressed
-
-    brakeValue := SafeGetKeyState(brakeAxis, brakeAxisIncreasesWhenPressed ? 0 : 100) ; missing brake reads as released
+; ==========================================================================================================================================================
+; IsBrakeAxisPastThreshold(pedalValue, threshold)
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
+; Tests a previously read combined gas/brake-axis value against a brake-side threshold.
+;
+; Higher-level helpers define what each threshold means.
+; ==========================================================================================================================================================
+IsBrakeAxisPastThreshold(pedalValue, threshold) {
+    global brakeAxisIncreasesWhenPressed
 
     if brakeAxisIncreasesWhenPressed {
-        return brakeValue > brakeThreshold ; brake is pressed when value rises above threshold
+        return pedalValue > threshold
     } else {
-        return brakeValue < brakeThreshold ; brake is pressed when value falls below threshold
-        
+        return pedalValue < threshold
     } ; end axis direction branch
+} ; end isbrakeaxispastthreshold
+
+; ==========================================================================================================================================================
+; IsBrakePedalActive(pedalValue)
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
+; Determines whether a previously read combined pedal value represents meaningful brake input.
+; ==========================================================================================================================================================
+IsBrakePedalActive(pedalValue) {
+    global brakeActiveThreshold
+
+    return IsBrakeAxisPastThreshold(pedalValue, brakeActiveThreshold)
+} ; end isbrakepedalactive
+
+; ==========================================================================================================================================================
+; IsBrakePressedForSequentialReset(pedalValue)
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
+; Determines whether a previously read combined pedal value represents braking hard enough to count toward the sequential brake-hold gear-reset heuristic.
+; ==========================================================================================================================================================
+IsBrakePressedForSequentialReset(pedalValue) {
+    global brakeResetThreshold
+
+    return IsBrakeAxisPastThreshold(pedalValue, brakeResetThreshold)
 } ; end isbrakepressedforsequentialreset
 
-; =============================================================================
-; GetShifterHandbrakeButton()
-; -----------------------------------------------------------------------------
-; Returns the configured shifter slot used as a digital handbrake.
-;
-; Default:
-;   shifterHandbrakeButtonNormal, fourth gear
-;
-; Inverted:
-;   shifterHandbrakeButtonInverted, third gear
-;
-; Returns:
-;   shifter slot used as handbrake
-;
-; Shifter handbrake inversion is independent from sequential shift inversion.
-; =============================================================================
-GetShifterHandbrakeButton() { ; returns the 
-    global invertShifterHandbrake
-    global shifterHandbrakeButtonNormal, shifterHandbrakeButtonInverted
-
-    if invertShifterHandbrake {
-        return shifterHandbrakeButtonInverted
-    } ; end inverted branch
-
-    return shifterHandbrakeButtonNormal
-} ; end getshifterhandbrakebutton
-
-; =============================================================================
-; IsShifterHandbrakeModeActive()
-; -----------------------------------------------------------------------------
-; Determines whether the shifter-handbrake feature is currently active.
-;
-; This feature is valid only in sequential mode because H-pattern mode needs the
-; physical shifter slots for actual gears.
-;
-; Returns:
-;   true  = sequential mode is active and shifter handbrake is enabled
-;   false = shifter handbrake ignored
-; =============================================================================
-IsShifterHandbrakeModeActive() { ; checks whether shifter handbrake mode can run
-    global enableShifterHandbrake, transmissionIsSequential ; feature and transmission mode
-
-    return enableShifterHandbrake && transmissionIsSequential ; active only when enabled and sequential mode is active
-} ; end isshifterhandbrakemodeactive
-
-; =============================================================================
+; ==========================================================================================================================================================
 ; IsShifterHandbrakeActive()
-; -----------------------------------------------------------------------------
-; Reads the configured shifter-handbrake slot.
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
+; Reads the currently active shifter-handbrake slot.
 ;
-; Neutral position:
-;   no handbrake
+; The handbrake source is independent from sequential-shifter arbitration.
+; HandleSequentialTransmission() separately uses the cached active shifter-handbrake conflict state to decide whether the sequential pair must
+; be suppressed.
 ;
-; Configured slot:
-;   handbrake held
+; After being disarmed, the handbrake must observe its OWN configured slot successfully released before it can engage again.
 ;
 ; Returns:
-;   true  = configured shifter handbrake slot is selected
-;   false = shifter handbrake is inactive or released
-; =============================================================================
+;   true  = active shifter-handbrake slot is selected while armed
+;   false = source is inactive, disarmed, released, or unreadable
+; ==========================================================================================================================================================
 IsShifterHandbrakeActive() {
+    global enableShifterHandbrake
+    global transmissionIsSequential
+
     global shifterHandbrakeArmed
+    global shifterHandbrakeButton
 
-    if !IsShifterHandbrakeModeActive() {
-        return false ; ignores shifter handbrake outside sequential mode or when disabled
-    } ; end mode check
+    if !enableShifterHandbrake || !transmissionIsSequential {
+        return false
+    } ; end inactive-mode guard
 
-    handbrakeSlotPressed := SafeGetKeyState(GetShifterHandbrakeButton(), false) ; reads configured shifter handbrake
-    sequentialSlotPressed := SafeGetKeyState(GetSequentialUpshiftButton(), false) || SafeGetKeyState(GetSequentialDownshiftButton(), false) ; checks whether shifter is still in any sequential slot
+    if !TryGetInputState(
+        shifterHandbrakeButton,
+        &handbrakeSlotPressed
+    ) {
+        shifterHandbrakeArmed := false
+        return false
+    } ; end unreadable-input guard
 
-    if !sequentialSlotPressed { ; shifter is physically in neutral
-        shifterHandbrakeArmed := true ; allows future shifter handbrake engagement
-    } ; end neutral-arm branch
+    if !shifterHandbrakeArmed {
+        if !handbrakeSlotPressed {
+            shifterHandbrakeArmed := true
+        } ; end released-state check
 
-    if !shifterHandbrakeArmed { ; blocks stale shifter position after enabling shifter handbrake
-        return false ; waits until shifter returns to neutral first
-    } ; end arming gate
+        return false
+    } ; end re-arm gate
 
-    return handbrakeSlotPressed ; returns handbrake only after neutral-arm condition is satisfied
+    return handbrakeSlotPressed
 } ; end isshifterhandbrakeactive
 
-; =============================================================================
+; ==========================================================================================================================================================
 ; IsAnalogHandbrakeActive()
-; -----------------------------------------------------------------------------
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
 ; Reads the optional physical handbrake axis.
 ;
 ; Allows physical handbrake and shifter handbrake to coexist.
@@ -569,46 +1631,39 @@ IsShifterHandbrakeActive() {
 ; Returns:
 ;   true  = analog handbrake is pulled past threshold
 ;   false = analog handbrake is released, blank, invalid, or disconnected
-; =============================================================================
+; ==========================================================================================================================================================
 IsAnalogHandbrakeActive() {
-    global handbrakeAxis, handbrakeThreshold ; analog handbrake settings
+    global handbrakeAxis
+    global handbrakeThreshold
 
-    if Trim(handbrakeAxis) = "" { ; checks whether user left handbrake axis blank
-        return false ; no physical handbrake configured
-    } ; end blank axis check
-
-    return SafeGetKeyState(handbrakeAxis, 0) > handbrakeThreshold ; missing handbrake reads as released
+    return SafeGetKeyState(handbrakeAxis, 0) > handbrakeThreshold
 } ; end isanaloghandbrakeactive
 
-; =============================================================================
-; ReadClutchReleasePercent()
-; -----------------------------------------------------------------------------
-; Returns the current clutch release position:
+; ==========================================================================================================================================================
+; ReadClutchReleasePercent(clutchValue)
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
+; Returns the clutch release position from a previously read raw clutch value:
 ;   0   = fully pressed
 ;   100 = fully released
-; =============================================================================
-ReadClutchReleasePercent() {
-    global clutchAxis
-
-    clutchValue := SafeGetKeyState(clutchAxis, 100) ; missing clutch reads as fully released
+; ==========================================================================================================================================================
+ReadClutchReleasePercent(clutchValue) {
     return Max(0, Min(100, clutchValue))
 } ; end readclutchreleasepercent
 
-; =============================================================================
-; ReadThrottlePercentForStall()
-; -----------------------------------------------------------------------------
-; Estimates throttle percentage from the shared gas/brake axis.
+; ==========================================================================================================================================================
+; ReadThrottlePercentForStall(pedalValue)
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
+; Estimates throttle percentage from a previously read shared gas/brake-axis value.
 ;
 ; If brake increases the axis value:
 ;   brake moves above center
 ;   gas moves below center
 ;
 ; If brake decreases the axis value, those directions are reversed.
-; =============================================================================
-ReadThrottlePercentForStall() {
-    global brakeAxis, brakeAxisIncreasesWhenPressed, combinedPedalCenter
-
-    pedalValue := SafeGetKeyState(brakeAxis, combinedPedalCenter)
+; ==========================================================================================================================================================
+ReadThrottlePercentForStall(pedalValue) {
+    global brakeAxisIncreasesWhenPressed
+    global combinedPedalCenter
 
     if brakeAxisIncreasesWhenPressed {
         gasDistance := combinedPedalCenter - pedalValue
@@ -623,346 +1678,920 @@ ReadThrottlePercentForStall() {
     } ; end invalid range guard
 
     throttlePercent := gasDistance / gasRange * 100
+
     return Max(0, Min(100, throttlePercent))
 } ; end readthrottlepercentforstall
 
-; =============================================================================
-; IsFirstGearSelectedForStall()
-; -----------------------------------------------------------------------------
-; H-pattern uses the physical first-gear slot.
-; Sequential mode uses RealManual's tracked virtual gear.
-; =============================================================================
-IsFirstGearSelectedForStall() {
-    global transmissionIsSequential, virtualGear
 
-    if transmissionIsSequential {
-        return virtualGear = 1
+; ==========================================================================================================================================================
+; IsBrakePressedForReverseAssist(pedalValue)
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
+; Determines whether a previously read combined pedal value has passed the raw brake-axis threshold required to engage reverse assist.
+; ==========================================================================================================================================================
+IsBrakePressedForReverseAssist(pedalValue) {
+    global engageBrakeThreshold
+
+    return IsBrakeAxisPastThreshold(pedalValue, engageBrakeThreshold)
+} ; end isbrakepressedforreverseassist
+
+; ==========================================================================================================================================================
+; IsFirstGearSelectedForStall(combinedPedalValue, selectedGear := -2)
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
+; Returns true when RealManual currently believes the game is in first gear.
+;
+; virtualGear is the authoritative tracked game gear.
+;
+; In H-pattern mode, an unknown or reverse physical shifter state prevents
+; first-gear stall detection for that scan.
+; ==========================================================================================================================================================
+IsFirstGearSelectedForStall(combinedPedalValue, selectedGear := -2) {
+    global transmissionIsSequential
+    global virtualGear
+    global lastSentGear
+
+    ; reverse is never treated as first gear.
+    if lastSentGear = -1 && IsBrakePedalActive(combinedPedalValue) {
+        return false
     }
 
-    return ReadSelectedGear() = 1
+    ; H-pattern unknown (-2) and reverse (-1) are not safe first-gear states.
+    if !transmissionIsSequential && selectedGear < 0 {
+        return false
+    }
+
+    return virtualGear = 1
 } ; end isfirstgearselectedforstall
 
-; =============================================================================
+; ==========================================================================================================================================================
 ; IsPhysicalShifterNeutral()
-; -----------------------------------------------------------------------------
-; Reverse must be checked separately because ReadSelectedGear() returns zero
-; when the reverse slot is selected.
-; =============================================================================
+; ==========================================================================================================================================================
 IsPhysicalShifterNeutral() {
-    global reverseButton
-
     return ReadSelectedGear() = 0
-        && !SafeGetKeyState(reverseButton, false)
 } ; end isphysicalshifterneutral
 
-; =============================================================================
+; ==========================================================================================================================================================
 ; IsClutchFullyPressedForRestart()
-; -----------------------------------------------------------------------------
-IsClutchFullyPressedForRestart() {
+; ==========================================================================================================================================================
+IsClutchFullyPressedForRestart(clutchValue) {
     global restartClutchThreshold
 
-    return ReadClutchReleasePercent() <= restartClutchThreshold
+    return ReadClutchReleasePercent(clutchValue) <= restartClutchThreshold
 } ; end isclutchfullypressedforrestart
 
-; =============================================================================
-; IsNFSFocused()
-; -----------------------------------------------------------------------------
-; Determines whether Need for Speed is currently the active foreground window.
+
+; ==========================================================================================================================================================
+; SECTION 13: NOTIFICATIONS, STATUS, VALIDATION, AND LOGGING
+; ==========================================================================================================================================================
+
+; ==========================================================================================================================================================
+; BoolText(value)
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
+; Converts a boolean value into user-readable text.
 ;
-; Returns:
-;   true  = speed.exe is focused and receiving input
-;   false = another application currently has focus
+; true  -> Enabled
+; false -> Disabled
 ;
-; Used to prevent RealManual from reading inputs or sending game commands while
-; interacting with another application.
-; =============================================================================
-IsNFSFocused() {
-    return WinActive("ahk_exe speed.exe")
-}
+; Used by live mode status messages.
+; ==========================================================================================================================================================
+BoolText(value) {
+    return value ? "Enabled" : "Disabled"
+} ; end booltext
 
+; ==========================================================================================================================================================
+; ModeText()
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
+; Converts the current transmission mode into user-readable text.
+; ==========================================================================================================================================================
+ModeText() {
+    global transmissionIsSequential
 
-; =============================================================================
-; SECTION 12: NOTIFICATIONS, VALIDATION, AND LOGGING
-; =============================================================================
+    return transmissionIsSequential ? "Sequential" : "H-Pattern"
+} ; end modetext
 
-; =============================================================================
+; ==========================================================================================================================================================
+; ClearStatusToolTip()
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
+; Clears RealManual's normal status tooltip without affecting the persistent stopwatch tooltip, which uses a separate tooltip ID.
+; ==========================================================================================================================================================
+ClearStatusToolTip() {
+    ToolTip(,,, 1)
+} ; end clearstatustooltip
+
+; ==========================================================================================================================================================
+; ShowToolTipMessage(message)
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
+; Displays an optional tooltip based on configuration.
+;
+; All RealManual tooltip messages should go through this function instead of calling ToolTip() directly. 
+; This allows disabling informational popups globally without changing script behavior.
+; ==========================================================================================================================================================
+ShowToolTipMessage(message) {
+    global enableToolTips
+    global toolTipDurationMs
+
+    if !enableToolTips {
+        return
+    } ; end enabled check
+
+    ; cancels any older pending clear so a previous message cannot erase the newly displayed status prematurely.
+    SetTimer(ClearStatusToolTip, 0)
+    ToolTip(message,,, 1)
+    SetTimer(ClearStatusToolTip, -toolTipDurationMs)
+} ; end showtooltipmessage
+
+; ==========================================================================================================================================================
+; ShowLiveModeStatus(changedSetting)
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
+; Shows a short tooltip after a live hotkey changes a mode setting.
+;
+; Live hotkeys change the running script state only. They do not write back to config.ini. Reloading RealManual restores the saved config file values.
+; ==========================================================================================================================================================
+ShowLiveModeStatus(changedSetting) {
+    global requireClutch, clutchActsAsNeutral
+    global invertSequentialShifter, maxForwardGear
+    global enableShifterHandbrake ; shifter handbrake
+    global toggleTransmissionModeButton
+    global toggleClutchRequiredButton, toggleClutchNeutralButton
+    global toggleSequentialShifterInvertButton
+    global toggleMaxForwardGearButton, toggleShifterHandbrakeButton ; feature
+    global statsShiftsButton, statsStallsButton, statsRaceRestartsButton, raceRestartButton ; stats
+    global enableStalling, toggleStallingButton ; stalling
+    global stopwatchButton, stopwatchLapButton, stopwatchClearButton ; stopwatch
+    global helpButton
+
+    message := changedSetting
+    message .= "`nTransmission: " ModeText() " [" toggleTransmissionModeButton "]"
+    message .= "`nClutch Required: " BoolText(requireClutch) " [" toggleClutchRequiredButton "]"
+    message .= "`nClutch -> Neutral: " BoolText(clutchActsAsNeutral) " [" toggleClutchNeutralButton "]"
+    message .= "`nSequential Shifter Invert: " BoolText(invertSequentialShifter) " [" toggleSequentialShifterInvertButton "]"
+    message .= "`nMax Gear: " maxForwardGear " [" toggleMaxForwardGearButton "]"
+    message .= "`nShifter Handbrake: " BoolText(enableShifterHandbrake) " [" toggleShifterHandbrakeButton "]"
+    message .= "`nStalling: " BoolText(enableStalling) " [" toggleStallingButton "]"
+    message .= "`nStopwatch Start/Pause: [" stopwatchButton "]"
+    message .= "`nStopwatch Lap: [" stopwatchLapButton "]"
+    message .= "`nStopwatch Clear: [" stopwatchClearButton "]"
+    message .= "`nStats - Shifts: [" statsShiftsButton "]"
+    message .= "`nStats - Stalls: [" statsStallsButton "]"
+    message .= "`nStats - Race Restarts: [" statsRaceRestartsButton "]"
+    message .= "`nRecord Race Restart: [" raceRestartButton "]"
+    message .= "`nHelp: [" helpButton "]"
+
+    ShowToolTipMessage(message) ; displays optional tooltip message
+} ; end showlivemodestatus
+
+; ==========================================================================================================================================================
 ; ShowStartupInfo()
-; -----------------------------------------------------------------------------
-; Builds and displays the startup notification after config.ini has loaded.
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
+; Displays a compact startup summary after config.ini has loaded.
 ;
-; This function summarizes the active transmission mode and major feature flags:
-;   H-pattern or sequential
-;   clutch required
-;   clutch-to-neutral
-;   handbrake
-;
-; Full validation details are written to startup_log.txt.
-; =============================================================================
-ShowStartupInfo() { ; shows compact startup status after config loads
-    global appName, appVersion, transmissionIsSequential, requireClutch, clutchActsAsNeutral, enableHandbrake, enableReverse, writeStartupLog ; startup display settings
-    global handbrakeAxis, handbrakeThreshold ; handbrake config
+; Reports runtime behavior settings that meaningfully change RealManual's transmission model. 
+; Detailed configuration and hardware status are written separately to the validation log.
+; ==========================================================================================================================================================
+ShowStartupInfo() {
+    global appName, appVersion
+    global transmissionIsSequential, requireClutch, clutchActsAsNeutral, enableStalling
+    global writeStartupLog
 
-    ; converts transmission modes to readable text
-    modeText := transmissionIsSequential ? "Sequential" : "H-Pattern" ;
+    modeText := transmissionIsSequential ? "Sequential" : "H-Pattern"
     clutchText := requireClutch ? "Enabled" : "Disabled"
     clutchNeutralText := clutchActsAsNeutral ? "Enabled" : "Disabled"
+    stallingText := enableStalling ? "Enabled" : "Disabled"
 
-    physicalHandbrakeConfigured := enableHandbrake && IsValidPercent(handbrakeThreshold) && IsConfigured(handbrakeAxis) ; checks whether physical handbrake is configured
-    handbrakeText := physicalHandbrakeConfigured ? "Enabled" : "Disabled" ; displays physical handbrake status
+    title := appName " " appVersion " - Config Loaded"
 
-    title := appName " " appVersion " - Config Loaded" ; builds notification title
-
-    compactMessage := "Mode: " modeText ; startup message
+    compactMessage := "Mode: " modeText
     compactMessage .= "`nClutch Required: " clutchText
     compactMessage .= "`nClutch -> Neutral: " clutchNeutralText
-    compactMessage .= "`nHandbrake: " handbrakeText
+    compactMessage .= "`nStalling: " stallingText
 
-    validationText := BuildValidationText() ; builds detailed validation report for log file
+    validationText := BuildValidationText()
 
-    if writeStartupLog { ; writes validation report to disk when enabled
+    if writeStartupLog {
         WriteStartupLogFile(title, compactMessage, validationText)
     } ; end startup log write
 
-    TrayTip compactMessage, title, 1 ; shows compact windows notification only
+    TrayTip compactMessage, title, 1
 } ; end showstartupinfo
 
-; =============================================================================
+; ==========================================================================================================================================================
 ; DetectInputHardware()
-; -----------------------------------------------------------------------------
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
 ; Checks whether a configured input can currently be read from physical
 ; hardware.
-; =============================================================================
+; ==========================================================================================================================================================
 DetectInputHardware(inputName) {
-    return SafeGetKeyState(inputName, "__MISSING__") != "__MISSING__"
+    return TryGetInputState(inputName, &value)
 } ; end detectinputhardware
 
-; =============================================================================
-; BuildValidationText()
-; -----------------------------------------------------------------------------
-; Creates the startup validation report.
+; ==========================================================================================================================================================
+; AddValidationWarning(&text, &warningText, &warningCount, detail, summary := "")
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
+; Adds one warning to the detailed validation report and final warning summary.
 ;
-; Configuration Validation
-; Hardware Detection
-; =============================================================================
+; summary:
+;   blank    = reuse detail in the final warning summary
+;   nonblank = use the supplied shorter summary instead
+; ==========================================================================================================================================================
+AddValidationWarning(&text, &warningText, &warningCount, detail, summary := "") {
+    text .= "[WARN] " detail "`n" ; adds the detailed warning to its current validation section
+
+    if summary = "" { ; uses the detailed text as the summary when no alternate wording was supplied
+        summary := detail ; avoids forcing callers to provide the same warning twice
+    } ; end default-summary branch
+
+    warningText .= summary "`n" ; adds the warning to the final condensed warning section
+    warningCount++
+} ; end addvalidationwarning
+
+; ==========================================================================================================================================================
+; BuildValidationText()
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
+; Creates the startup configuration, relationship, hotkey, and hardware report.
+;
+; Configuration Validation:
+;   checks required settings for missing or blank values
+;   validates boolean syntax
+;   validates numeric syntax and configured sanity ranges
+;
+; Configuration Relationships:
+;   checks whether individually valid settings make sense together, such as
+;   clutch and brake threshold ordering.
+;
+; Hotkey Validation:
+;   detects duplicate configurable hotkeys
+;   detects conflicts with fixed MW2005-HShifter protocol keys
+;
+; Hardware Detection:
+;   tests configured physical joystick axes/buttons to determine whether Windows
+;   currently exposes them to AutoHotkey.
+;
+; Fixed MW2005-HShifter protocol keys:
+;   0   = reverse
+;   N   = neutral
+;   1-6 = forward gears
+;
+; These protocol keys are hardcoded by RealManual and are not configurable.
+; ==========================================================================================================================================================
 BuildValidationText() {
-    global configFile, transmissionIsSequential, enableHandbrake, enableReverse ; config and mode settings
-    global clutchAxis, handbrakeAxis, clutchThreshold, handbrakeThreshold, neutralKey ; axis and threshold settings
-    global gear1Button, gear2Button, gear3Button, gear4Button, gear5Button, gear6Button, reverseButton, resetButton ; button mappings
-    global sequentialUpButtonNormal, sequentialDownButtonNormal ; sequential mappings
+    global configFile
+    global dynamicHotkeyRegistrationResults
+    global numericConfigRules, booleanConfigRules
 
-    warningText := "" ; collects warnings for final summary
+    configExists := FileExist(configFile)
+    missingSentinel := "__REALMANUAL_MISSING_CONFIG_VALUE__"
+
+    configuredValues := Map()
+    validatedInts := Map()
+    validatedBools := Map()
+
+    warningText := ""
     warningCount := 0
-
-    text := "" ; validation output text
+    text := ""
 
     text .= "Configuration Validation:`n`n"
 
-    if FileExist(configFile) { ; checks whether config exists
+    ; Config file
+    if configExists {
         text .= "[OK] Config file found`n"
     } else {
-        text .= "[WARN] config.ini missing, using fallback values`n"
-        warningText .= "config.ini missing, using fallback values`n"
-        warningCount++
-    } ; end config validation
+        AddValidationWarning(
+            &text,
+            &warningText,
+            &warningCount,
+            "config.ini missing"
+        )
+    } ; end config file validation
 
-    if IsValidPercent(clutchThreshold) {
-        text .= "[OK] Clutch threshold valid`n"
-    } else {
-        text .= "[WARN] Clutch threshold should be 0-100`n"
-        warningText .= "Clutch threshold should be 0-100`n"
-        warningCount++
-    } ; end clutch threshold validation
+    configChecks := [
+        ; General
+        ["General", "WriteStartupLog"],
+        ["General", "EnableToolTips"],
+        ["General", "ToolTipDurationMs"],
 
-    if IsValidPercent(handbrakeThreshold) {
-        text .= "[OK] Handbrake threshold valid`n"
-    } else {
-        text .= "[WARN] Handbrake threshold should be 0-100`n"
-        warningText .= "Handbrake threshold should be 0-100`n"
-        warningCount++
-    } ; end handbrake threshold validation
+        ; General hotkeys
+        ["Hotkeys", "HelpButton"],
+        ["Hotkeys", "ResetButton"],
+        ["Hotkeys", "PauseButton"],
+        ["Hotkeys", "ReloadButton"],
 
-    if IsConfigured(clutchAxis) {
-        text .= "[OK] Clutch axis configured`n"
-    } else {
-        text .= "[WARN] Clutch axis missing`n"
-        warningText .= "Clutch axis missing`n"
-        warningCount++
-    } ; end clutch axis validation
+        ; Transmission hotkeys
+        ["Hotkeys", "ToggleTransmissionModeButton"],
+        ["Hotkeys", "ToggleSequentialShifterInvertButton"],
+        ["Hotkeys", "ToggleMaxForwardGearButton"],
 
-    if enableHandbrake { ; only validates handbrake config when handbrake support is enabled
-        if IsConfigured(handbrakeAxis) {
-            text .= "[OK] Handbrake axis configured`n"
-        } else {
-            text .= "[WARN] Handbrake axis missing`n"
-            warningText .= "Handbrake axis missing`n"
-            warningCount++
+        ; Clutch hotkeys
+        ["Hotkeys", "ToggleClutchRequiredButton"],
+        ["Hotkeys", "ToggleClutchNeutralButton"],
+
+        ; Shifter handbrake hotkeys
+        ["Hotkeys", "ToggleShifterHandbrakeButton"],
+
+        ; Stall simulation hotkey
+        ["Hotkeys", "ToggleStallingButton"],
+
+        ; Stopwatch hotkeys
+        ["Hotkeys", "StopwatchButton"],
+        ["Hotkeys", "StopwatchLapButton"],
+        ["Hotkeys", "StopwatchClearButton"],
+
+        ; Ignition hotkey
+        ["Hotkeys", "IgnitionButton"],
+
+        ; Stats hotkeys
+        ["Hotkeys", "StatsShiftsButton"],
+        ["Hotkeys", "StatsStallsButton"],
+        ["Hotkeys", "StatsRaceRestartsButton"],
+        ["Hotkeys", "RaceRestartButton"],
+
+        ; Transmission
+        ["Transmission", "StartInSequentialMode"],
+        ["Transmission", "MaxForwardGear"],
+
+        ; General timing
+        ["Timing", "KeyHoldMs"],
+        ["Timing", "ScanIntervalMs"],
+
+        ; Clutch
+        ["Clutch", "RequireClutch"],
+        ["Clutch", "ClutchActsAsNeutral"],
+        ["Clutch", "ClutchAxis"],
+        ["Clutch", "ClutchThreshold"],
+
+        ; NFSMW game-key bindings
+        ["GameKeys", "ForwardKey"],
+        ["GameKeys", "ReverseKey"],
+        ["GameKeys", "HandbrakeKey"],
+        ["GameKeys", "ShiftUpKey"],
+        ["GameKeys", "ShiftDownKey"],
+
+        ; H-pattern shifter
+        ["HPattern", "Gear1Button"],
+        ["HPattern", "Gear2Button"],
+        ["HPattern", "Gear3Button"],
+        ["HPattern", "Gear4Button"],
+        ["HPattern", "Gear5Button"],
+        ["HPattern", "Gear6Button"],
+        ["HPattern", "ReverseButton"],
+
+        ; Handbrake
+        ["Handbrake", "HandbrakeAxis"],
+        ["Handbrake", "HandbrakeThreshold"],
+        ["Handbrake", "EnableShifterHandbrake"],
+        ["Handbrake", "ShifterHandbrakeButton"],
+
+        ; Sequential transmission
+        ["Sequential", "InvertSequentialShifter"],
+        ["Sequential", "SequentialUpshiftButton"],
+        ["Sequential", "SequentialDownshiftButton"],
+        ["Sequential", "EnableBrakeHoldGearReset"],
+        ["Sequential", "BrakeHoldResetMs"],
+        ["Sequential", "BrakeResetThreshold"],
+        ["Sequential", "PaddleUpshiftButton"],
+        ["Sequential", "PaddleDownshiftButton"],
+        ["Sequential", "QueuedShiftDelayMs"],
+
+        ; Combined pedals
+        ["Pedals", "CombinedPedalAxis"],
+        ["Pedals", "CombinedPedalCenter"],
+        ["Pedals", "BrakeAxisIncreasesWhenPressed"],
+        ["Pedals", "BrakeActiveThreshold"],
+
+        ; Stall / engine simulation
+        ["Stalling", "EnableStalling"],
+        ["Stalling", "ClutchReleaseThreshold"],
+        ["Stalling", "ThrottleThreshold"],
+        ["Stalling", "RestartClutchThreshold"],
+        ["Stalling", "NeutralResendMs"],
+        ["Stalling", "ThrottleBlipMs"],
+        ["Stalling", "NoInputStallDelayMs"],
+        ["Stalling", "BrakeResetStallGraceMs"],
+
+        ; Reverse assist
+        ["ReverseAssist", "EnableReverseAssist"],
+        ["ReverseAssist", "EngageBrakeThreshold"],
+
+        ; Stopwatch
+        ["Stopwatch", "StopwatchRefreshMs"],
+        ["Stopwatch", "StopwatchMaxLines"],
+
+        ; Statistics
+        ["Statistics", "TrackShifts"],
+        ["Statistics", "TrackStalls"],
+        ["Statistics", "TrackRaceRestarts"],
+        ["Statistics", "ClearAllTimeOnStartup"]
+    ]
+
+    if configExists {
+        for check in configChecks {
+            section := check[1]
+            key := check[2]
+
+            ruleKey := ConfigRuleKey(section, key)
+            rawValue := IniRead(configFile, section, key, missingSentinel)
+
+            ; Missing / Blank
+            if rawValue = missingSentinel || Trim(rawValue) = "" {
+                AddValidationWarning(
+                    &text,
+                    &warningText,
+                    &warningCount,
+                    "[" section "] " key " missing"
+                )
+
+                continue
+            } ; end missing value guard
+
+            ; Preserve the configured value so later validation stages do not need to read config.ini again.
+            configuredValues[ruleKey] := Trim(rawValue)
+
+            ; Numeric Settings
+            if numericConfigRules.Has(ruleKey) {
+                range := numericConfigRules[ruleKey]
+                minimum := range[1]
+                maximum := range[2]
+
+                if !TryParseConfigInt(rawValue, &parsedValue) {
+                    AddValidationWarning(
+                        &text,
+                        &warningText,
+                        &warningCount,
+                        "[" section "] " key
+                            . " invalid integer: '" rawValue "'"
+                    )
+
+                    continue
+                } ; end integer syntax validation
+
+                if parsedValue < minimum || parsedValue > maximum {
+                    detail :=
+                        "[" section "] " key
+                        . " = " parsedValue
+                        . " outside valid range "
+                        . minimum "-" maximum
+
+                    AddValidationWarning(
+                        &text,
+                        &warningText,
+                        &warningCount,
+                        detail
+                    )
+
+                    continue
+                } ; end integer range validation
+
+                validatedInts[ruleKey] := parsedValue
+
+                text .= "[OK] [" section "] " key
+                    . " = " parsedValue
+                    . " (valid range " minimum "-" maximum ")`n"
+
+                continue
+            } ; end numeric setting validation
+
+            ; Boolean Settings
+            if booleanConfigRules.Has(ruleKey) {
+                if !TryParseConfigBool(rawValue, &parsedBool) {
+                    AddValidationWarning(
+                        &text,
+                        &warningText,
+                        &warningCount,
+                        "[" section "] " key
+                            . " must be 0 or 1; got '" rawValue "'"
+                    )
+
+                    continue
+                } ; end boolean validation
+
+                validatedBools[ruleKey] := parsedBool
+
+                text .= "[OK] [" section "] " key
+                    . " = " Trim(rawValue) "`n"
+
+                continue
+            } ; end boolean setting validation
+
+            ; Text / Mapping Settings
+            text .= "[OK] [" section "] " key " configured`n"
+
+        } ; end config check loop
+    } ; end config-presence branch
+
+    ; Configuration Relationship Validation
+    text .= "`nConfiguration Relationships:`n`n"
+
+    ; Combined Pedal / Brake Threshold Relationships
+    pedalCenterKey := ConfigRuleKey("Pedals", "CombinedPedalCenter")
+    activeBrakeKey := ConfigRuleKey("Pedals", "BrakeActiveThreshold")
+    hardBrakeKey := ConfigRuleKey("Sequential", "BrakeResetThreshold")
+    engageBrakeThresholdKey := ConfigRuleKey("ReverseAssist", "EngageBrakeThreshold")
+    brakeDirectionKey := ConfigRuleKey("Pedals", "BrakeAxisIncreasesWhenPressed")
+
+    if validatedInts.Has(pedalCenterKey) && validatedBools.Has(brakeDirectionKey) {
+        pedalCenter := validatedInts[pedalCenterKey]
+        brakeIncreases := validatedBools[brakeDirectionKey]
+
+        ; Normal Brake Threshold Ordering
+        if validatedInts.Has(activeBrakeKey) && validatedInts.Has(hardBrakeKey) {
+            activeBrakeThreshold := validatedInts[activeBrakeKey]
+            hardBrakeThreshold := validatedInts[hardBrakeKey]
+
+            if brakeIncreases {
+                brakeThresholdOrderValid :=
+                    pedalCenter < activeBrakeThreshold
+                    && activeBrakeThreshold < hardBrakeThreshold
+            } else {
+                brakeThresholdOrderValid :=
+                    pedalCenter > activeBrakeThreshold
+                    && activeBrakeThreshold > hardBrakeThreshold
+            } ; end brake-axis direction branch
+
+            if brakeThresholdOrderValid {
+                text .= "[OK] Combined pedal center and brake thresholds ordered correctly`n"
+            } else {
+                AddValidationWarning(
+                    &text,
+                    &warningText,
+                    &warningCount,
+                    "CombinedPedalCenter, BrakeActiveThreshold, and "
+                        . "BrakeResetThreshold are not ordered correctly for the configured "
+                        . "brake-axis direction",
+                    "CombinedPedalCenter / BrakeActiveThreshold / "
+                        . "BrakeResetThreshold ordering invalid"
+                )
+            } ; end normal brake relationship result
+        } ; end normal brake-threshold validation
+
+        ; Reverse Assist Brake Threshold
+        if validatedInts.Has(engageBrakeThresholdKey) {
+            engageBrakeThreshold := validatedInts[engageBrakeThresholdKey]
+
+            if brakeIncreases {
+                engageBrakeThresholdValid := engageBrakeThreshold > pedalCenter
+            } else {
+                engageBrakeThresholdValid := engageBrakeThreshold < pedalCenter
+            }
+
+            if engageBrakeThresholdValid {
+                text .= "[OK] Reverse-assist engagement threshold is on the brake side of the combined axis`n"
+            } else {
+                AddValidationWarning(
+                    &text,
+                    &warningText,
+                    &warningCount,
+                    "ReverseAssist.EngageBrakeThreshold must be on the brake side of CombinedPedalCenter",
+                    "ReverseAssist.EngageBrakeThreshold is not on the brake side of CombinedPedalCenter"
+                )
+            } ; end reverse-assist relationship result
+        } ; end reverse-assist threshold validation
+
+    } ; end combined-pedal brake relationship validation
+
+    ; Clutch threshold relationships
+    clutchThresholdKey := ConfigRuleKey("Clutch", "ClutchThreshold")
+
+    restartThresholdKey := ConfigRuleKey("Stalling", "RestartClutchThreshold")
+
+    clutchReleaseKey := ConfigRuleKey("Stalling", "ClutchReleaseThreshold")
+
+    if validatedInts.Has(clutchThresholdKey) {
+        clutchPressThreshold := validatedInts[clutchThresholdKey]
+
+        ; Restart clutch threshold
+        if validatedInts.Has(restartThresholdKey) {
+            restartThreshold := validatedInts[restartThresholdKey]
+
+            if restartThreshold <= clutchPressThreshold {
+                text .= "[OK] Restart clutch threshold is within clutch-pressed range`n"
+            } else {
+                AddValidationWarning(
+                    &text,
+                    &warningText,
+                    &warningCount,
+                    "RestartClutchThreshold should not exceed ClutchThreshold",
+                    "RestartClutchThreshold exceeds ClutchThreshold"
+                )
+            } ; end restart clutch relationship
         }
-    } ; end handbrake config validation branch
 
-    ; gear mapping
-    if IsConfigured(neutralKey) {
-        text .= "[OK] Neutral key configured`n"
-    } else {
-        text .= "[WARN] Neutral key missing`n"
-        warningText .= "Neutral key missing`n"
-        warningCount++
-    } ; end neutral key validation
+        ; Stall clutch-release threshold
+        if validatedInts.Has(clutchReleaseKey) {
+            clutchReleaseThreshold := validatedInts[clutchReleaseKey]
 
-    if IsConfigured(gear1Button) {
-        text .= "[OK] Gear 1 button configured`n"
-    } else {
-        text .= "[WARN] Gear 1 button missing`n"
-        warningText .= "Gear 1 button missing`n"
-        warningCount++
-    } ; end gear 1 validation
+            if clutchReleaseThreshold > clutchPressThreshold {
+                text .= "[OK] Clutch release threshold is above clutch-pressed threshold`n"
+            } else {
+                AddValidationWarning(
+                    &text,
+                    &warningText,
+                    &warningCount,
+                    "ClutchReleaseThreshold should be greater than ClutchThreshold",
+                    "ClutchReleaseThreshold must exceed ClutchThreshold"
+                )
+            } ; end clutch-release relationship
+        }
+    } ; end clutch threshold relationships
 
-    if IsConfigured(gear2Button) {
-        text .= "[OK] Gear 2 button configured`n"
-    } else {
-        text .= "[WARN] Gear 2 button missing`n"
-        warningText .= "Gear 2 button missing`n"
-        warningCount++
-    } ; end gear 2 validation
+    ; Physical mapping relationships
+    mappingGroups := [
+        [
+            "H-pattern gear/reverse",
+            [
+                ["Gear 1", ConfigRuleKey("HPattern", "Gear1Button")],
+                ["Gear 2", ConfigRuleKey("HPattern", "Gear2Button")],
+                ["Gear 3", ConfigRuleKey("HPattern", "Gear3Button")],
+                ["Gear 4", ConfigRuleKey("HPattern", "Gear4Button")],
+                ["Gear 5", ConfigRuleKey("HPattern", "Gear5Button")],
+                ["Gear 6", ConfigRuleKey("HPattern", "Gear6Button")],
+                ["Reverse", ConfigRuleKey("HPattern", "ReverseButton")]
+            ]
+        ],
+        [
+            "Sequential shifter",
+            [
+                ["Upshift", ConfigRuleKey("Sequential", "SequentialUpshiftButton")],
+                ["Downshift", ConfigRuleKey("Sequential", "SequentialDownshiftButton")]
+            ]
+        ],
+        [
+            "Paddle synchronization",
+            [
+                ["Paddle upshift", ConfigRuleKey("Sequential", "PaddleUpshiftButton")],
+                ["Paddle downshift", ConfigRuleKey("Sequential", "PaddleDownshiftButton")]
+            ]
+        ]
+    ]
 
-    if IsConfigured(gear3Button) {
-        text .= "[OK] Gear 3 button configured`n"
-    } else {
-        text .= "[WARN] Gear 3 button missing`n"
-        warningText .= "Gear 3 button missing`n"
-        warningCount++
-    } ; end gear 3 validation
+    if configExists {
+        for group in mappingGroups {
+            groupName := group[1]
+            mappings := group[2]
 
-    if IsConfigured(gear4Button) {
-        text .= "[OK] Gear 4 button configured`n"
-    } else {
-        text .= "[WARN] Gear 4 button missing`n"
-        warningText .= "Gear 4 button missing`n"
-        warningCount++
-    } ; end gear 4 validation
+            seenInputs := Map()
+            duplicateFound := false
+            configuredCount := 0
 
-    if IsConfigured(gear5Button) {
-        text .= "[OK] Gear 5 button configured`n"
-    } else {
-        text .= "[WARN] Gear 5 button missing`n"
-        warningText .= "Gear 5 button missing`n"
-        warningCount++
-    } ; end gear 5 validation
+            for mapping in mappings {
+                label := mapping[1]
+                mappingKey := mapping[2]
 
-    if IsConfigured(gear6Button) {
-        text .= "[OK] Gear 6 button configured`n"
-    } else {
-        text .= "[WARN] Gear 6 button missing`n"
-        warningText .= "Gear 6 button missing`n"
-        warningCount++
-    } ; end gear 6 validation
+                if !configuredValues.Has(mappingKey) {
+                    continue
+                } ; end missing mapping guard
 
-    if transmissionIsSequential {
-        if IsConfigured(sequentialUpButtonNormal) {
-            text .= "[OK] Sequential upshift configured`n"
-        } else {
-            text .= "[WARN] Sequential upshift missing`n"
-            warningText .= "Sequential upshift missing`n"
-            warningCount++
-        } ; end sequential upshift validation
+                inputName := configuredValues[mappingKey]
+                configuredCount++
 
-        if IsConfigured(sequentialDownButtonNormal) {
-            text .= "[OK] Sequential downshift configured`n"
-        } else {
-            text .= "[WARN] Sequential downshift missing`n"
-            warningText .= "Sequential downshift missing`n"
-            warningCount++
-        } ; end sequential downshift validation
-    } ; end sequential config validation branch
+                normalizedInput := StrLower(inputName)
 
-    if enableReverse {
-        if IsConfigured(reverseButton) {
-            text .= "[OK] Reverse button configured`n"
-        } else {
-            text .= "[WARN] Reverse button missing`n"
-            warningText .= "Reverse button missing`n"
-            warningCount++
-        } ; end reverse validation
-    } ; end reverse config validation branch
+                if seenInputs.Has(normalizedInput) {
+                    previousLabel := seenInputs[normalizedInput]
 
-    if IsConfigured(resetButton) {
-        text .= "[OK] Reset button configured`n"
-    } else {
-        text .= "[WARN] Reset button missing`n"
-        warningText .= "Reset button missing`n"
-        warningCount++
-    } ; end reset validation
+                    detail :=
+                        groupName ": "
+                        . previousLabel " and " label
+                        . " share input [" inputName "]"
 
+                    AddValidationWarning(
+                        &text,
+                        &warningText,
+                        &warningCount,
+                        detail
+                    )
+
+                    duplicateFound := true
+                } else {
+                    seenInputs[normalizedInput] := label
+                } ; end duplicate check
+            } ; end mapping loop
+
+            if configuredCount = mappings.Length && !duplicateFound {
+                text .= "[OK] " groupName
+                    . " mappings are distinct`n"
+            }
+        } ; end mapping group loop
+    } ; end physical mapping relationship validation
+
+    ; Hotkey Validation
+    text .= "`nHotkey Validation:`n`n"
+
+    if configExists {
+        for result in dynamicHotkeyRegistrationResults {
+
+            switch result.status {
+                ; Registered
+                case "registered":
+                    text .= "[OK] "
+                        . result.label
+                        . " hotkey ["
+                        . result.hotkey
+                        . "] registered`n"
+
+                ; Reserved MW2005-HShifter Key
+                case "reserved":
+                    detail :=
+                        "[Hotkeys] "
+                        . result.setting
+                        . " ["
+                        . result.hotkey
+                        . "] conflicts with "
+                        . result.detail
+                        . "; hotkey not registered"
+
+                    AddValidationWarning(
+                        &text,
+                        &warningText,
+                        &warningCount,
+                        detail
+                    )
+
+                ; Duplicate
+                case "duplicate":
+                    detail :=
+                        "Hotkey ["
+                        . result.hotkey
+                        . "] assigned to both "
+                        . result.detail
+                        . " and "
+                        . result.label
+
+                    AddValidationWarning(
+                        &text,
+                        &warningText,
+                        &warningCount,
+                        detail
+                    )
+
+                ; Registration Failure
+                case "failed":
+                    detail :=
+                        "[Hotkeys] "
+                        . result.setting
+                        . " could not register ["
+                        . result.hotkey
+                        . "]"
+
+                    if result.detail != "" {
+                        detail .= ": " result.detail
+                    }
+
+                    AddValidationWarning(
+                        &text,
+                        &warningText,
+                        &warningCount,
+                        detail
+                    )
+            }
+
+        } ; end registration-result loop
+    } ; end hotkey validation
+
+    ; Reserved MW2005-HShifter Binding Conflicts
+    manualBindingChecks := [
+        ; Axes / physical inputs
+        ["Clutch", "ClutchAxis"],
+        ["Pedals", "CombinedPedalAxis"],
+        ["Handbrake", "HandbrakeAxis"],
+
+        ; NFSMW game keys
+        ["GameKeys", "ForwardKey"],
+        ["GameKeys", "ReverseKey"],
+        ["GameKeys", "HandbrakeKey"],
+        ["GameKeys", "ShiftUpKey"],
+        ["GameKeys", "ShiftDownKey"],
+
+        ; H-pattern shifter
+        ["HPattern", "Gear1Button"],
+        ["HPattern", "Gear2Button"],
+        ["HPattern", "Gear3Button"],
+        ["HPattern", "Gear4Button"],
+        ["HPattern", "Gear5Button"],
+        ["HPattern", "Gear6Button"],
+        ["HPattern", "ReverseButton"],
+
+        ; Sequential shifter
+        ["Sequential", "SequentialUpshiftButton"],
+        ["Sequential", "SequentialDownshiftButton"],
+
+        ; Paddle synchronization
+        ["Sequential", "PaddleUpshiftButton"],
+        ["Sequential", "PaddleDownshiftButton"],
+
+        ; Shifter handbrake
+        ["Handbrake", "ShifterHandbrakeButton"]
+    ]
+
+    if configExists {
+        for bindingCheck in manualBindingChecks {
+
+            sectionName := bindingCheck[1]
+            settingName := bindingCheck[2]
+
+            settingKey := ConfigRuleKey(sectionName, settingName)
+
+            ; Missing and blank values were already handled by the normal configuration-validation pass.
+            if !configuredValues.Has(settingKey) {
+                continue
+            } ; end missing binding
+
+            configuredBinding := configuredValues[settingKey]
+            reservedPurpose := GetReservedProtocolConflict(configuredBinding)
+
+            if reservedPurpose = "" {
+                continue
+            } ; end valid user binding
+
+            detail :=
+                "["
+                . sectionName
+                . "] "
+                . settingName
+                . " ["
+                . configuredBinding
+                . "] conflicts with "
+                . reservedPurpose
+                . "; runtime binding disabled"
+
+            AddValidationWarning(
+                &text,
+                &warningText,
+                &warningCount,
+                detail
+            )
+        } ; end manual binding validation
+    } ; end reserved binding validation
+
+    ; Hardware Detection
     text .= "`nHardware Detection:`n`n"
 
-    if DetectInputHardware(clutchAxis) {
-        text .= "[OK] Clutch axis detected`n"
-    } else {
-        text .= "[WARN] Clutch axis not detected: " clutchAxis "`n"
-        warningText .= "Clutch axis not detected: " clutchAxis "`n"
-        warningCount++
-    } ; end clutch hardware detection
+    if configExists {
+        ; These axes are not part of the grouped button mappings, so they are added directly.
+        hardwareChecks := [
+            ["Clutch axis", ConfigRuleKey("Clutch", "ClutchAxis")],
+            ["Handbrake axis", ConfigRuleKey("Handbrake", "HandbrakeAxis")],
+            ["Combined pedal axis", ConfigRuleKey("Pedals", "CombinedPedalAxis")],
+            ["Shifter handbrake", ConfigRuleKey("Handbrake", "ShifterHandbrakeButton")]
+        ]
 
-    if enableHandbrake && Trim(handbrakeAxis) != "" { ; detects handbrake hardware only when configured and enabled
-        if DetectInputHardware(handbrakeAxis) {
-            text .= "[OK] Handbrake axis detected`n"
-        } else {
-            text .= "[WARN] Handbrake axis not detected: " handbrakeAxis "`n"
-            warningText .= "Handbrake axis not detected: " handbrakeAxis "`n"
-            warningCount++
-        } ; end handbrake hardware detection
-    } ; end handbrake detection branch
+        ; Reuse the physical button mappings already defined for relationship validation instead of defining the same mappings again.
+        for group in mappingGroups {
+            groupName := group[1]
+            mappings := group[2]
 
-    shifterDetected := false ; assumes shifter hardware is unavailable
+            for mapping in mappings {
+                mappingLabel := mapping[1]
+                mappingKey := mapping[2]
 
-    for buttonName in [gear1Button, gear2Button, gear3Button, gear4Button, gear5Button, gear6Button, reverseButton] { ; scans configured shifter buttons
-        if DetectInputHardware(buttonName) {
-            shifterDetected := true
-            break ; stops scanning after first readable shifter input
-        } ; end shifter input detected branch
-    } ; end shifter detection loop
+                hardwareChecks.Push([
+                    groupName " - " mappingLabel,
+                    mappingKey
+                ])
+            } ; end mapping loop
+        } ; end mapping group loop
 
-    if shifterDetected { ; checks whether any shifter input was detected
-        text .= "[OK] Shifter detected`n"
-    } else {
-        text .= "[WARN] Shifter not detected`n"
-        warningText .= "Shifter not detected`n"
-        warningCount++
-    } ; end shifter detection branch
+        ; Test every configured physical input against Windows / AutoHotkey.
+        for hardwareCheck in hardwareChecks {
+            label := hardwareCheck[1]
+            inputKey := hardwareCheck[2]
 
-    if transmissionIsSequential {
-        seqUpDetected := DetectInputHardware(sequentialUpButtonNormal)
-        seqDownDetected := DetectInputHardware(sequentialDownButtonNormal)
+            if !configuredValues.Has(inputKey) {
+                continue
+            } ; end missing mapping guard
 
-        if seqUpDetected {
-            text .= "[OK] Sequential upshift detected`n"
-        } else {
-            text .= "[WARN] Sequential upshift not detected: " sequentialUpButtonNormal "`n"
-            warningText .= "Sequential upshift not detected: " sequentialUpButtonNormal "`n"
-            warningCount++
-        } ; end sequential upshift hardware detection
+            inputName := configuredValues[inputKey]
 
-        if seqDownDetected {
-            text .= "[OK] Sequential downshift detected`n"
-        } else {
-            text .= "[WARN] Sequential downshift not detected: " sequentialDownButtonNormal "`n"
-            warningText .= "Sequential downshift not detected: " sequentialDownButtonNormal "`n"
-            warningCount++
-        } ; end sequential downshift hardware detection
-    } ; end sequential hardware detection branch
+            ; Reserved H-Shifter bindings were already reported above and have been disabled at runtime.
+            if GetReservedProtocolConflict(inputName) != "" {
+                continue
+            }
 
+            if DetectInputHardware(inputName) {
+                text .= "[OK] " label " detected: " inputName "`n"
+            } else {
+                AddValidationWarning(
+                    &text,
+                    &warningText,
+                    &warningCount,
+                    label " not detected: " inputName
+                )
+            } ; end hardware detection result
+        } ; end hardware detection loop
+
+    } ; end hardware detection config branch
+
+    ; Summary
     if warningCount = 0 {
         text .= "`nReady."
     } else {
         text .= "`n[WARNING]`n"
         text .= warningText
-    } ; end warning summary branch
+    } ; end warning summary
 
-    return text ; returns completed validation report
+    return text
 } ; end buildvalidationtext
 
-; =============================================================================
+; ==========================================================================================================================================================
 ; WriteStartupLogFile(title, compactMessage, validationText)
-; -----------------------------------------------------------------------------
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
 ; Writes startup_log.txt beside RealManual.ahk.
 ;
 ; Log includes:
@@ -972,153 +2601,680 @@ BuildValidationText() {
 ;   validation report
 ;
 ; This file is for troubleshooting.
-; =============================================================================
+; ==========================================================================================================================================================
 WriteStartupLogFile(title, compactMessage, validationText) {
-    logFile := A_ScriptDir "\startup_log.txt" ; stores log beside executable
+    logFile := A_ScriptDir "\startup_log.txt"
 
     log := ""
     log .= "==================================================`n"
     log .= "RealManual Startup Log`n"
     log .= "==================================================`n`n"
-    log .= "Generated: " A_Now "`n`n" ; timestamp
+    log .= "Generated: " A_Now "`n`n"
     log .= title "`n`n"
-    log .= compactMessage "`n`n" ; config summary
+    log .= compactMessage "`n`n"
     log .= "Validation:`n`n"
     log .= validationText "`n`n"
     log .= "==================================================`n"
     log .= "End of Log`n"
     log .= "==================================================`n"
 
-    FileDelete(logFile) ; removes previous log if it exists
-    FileAppend(log, logFile, "UTF-8") ; writes new log file
+    try {
+        if FileExist(logFile) {
+            FileDelete(logFile)
+        }
+
+        FileAppend(log, logFile, "UTF-8")
+        return true
+    } catch {
+        return false
+    }
 } ; end writestartuplogfile
 
-; =============================================================================
+; ==========================================================================================================================================================
 ; OpenValidationLog(*)
-; -----------------------------------------------------------------------------
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
 ; Opens startup_log.txt from the tray menu.
-; =============================================================================
+; ==========================================================================================================================================================
 OpenValidationLog(*) {
     logFile := A_ScriptDir "\startup_log.txt"
 
-    if FileExist(logFile) {
-        Run(logFile) ; opens with associated editor
-    } else { ;
+    if !FileExist(logFile) {
         MsgBox("startup_log.txt was not found.")
-    } ; end existence check
+        return
+    }
+
+    try {
+        Run(logFile)
+    } catch {
+        MsgBox("startup_log.txt could not be opened.")
+    }
 } ; end openvalidationlog
 
-; =============================================================================
-; BoolText(value)
-; -----------------------------------------------------------------------------
-; Converts a boolean value into user-readable text.
+
+; ==========================================================================================================================================================
+; SECTION 14: STATISTICS & SHARED OVERLAY LAYOUT
+; ==========================================================================================================================================================
+
+; ==========================================================================================================================================================
+; ReadStatCount(section, key)
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
+; Reads one non-negative count from stats.txt.
+; Missing or malformed values safely become zero.
+; ==========================================================================================================================================================
+ReadStatCount(section, key) {
+    global statsFile
+
+    try {
+        rawValue := IniRead(
+            statsFile,
+            section,
+            key,
+            "0"
+        )
+
+        if TryParseConfigInt(rawValue, &parsedValue) {
+            return parsedValue
+        }
+    }
+
+    return 0
+} ; end readstatcount
+
+; ==========================================================================================================================================================
+; SaveStatCount(section, key, value)
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
+; Persists one statistics value to stats.txt.
 ;
-; true  -> Enabled
-; false -> Disabled
+; Callers use this only when that specific counter has actually changed.
+; This avoids rewriting all session/all-time statistics after every event.
 ;
-; Used by startup messages and live mode status popups.
-; =============================================================================
-BoolText(value) {
-    return value ? "Enabled" : "Disabled"
-} ; end booltext
-
-; =============================================================================
-; ModeText()
-; -----------------------------------------------------------------------------
-; Converts the current transmission mode into user-readable text.
-; =============================================================================
-ModeText() { ; returns current transmission mode as text
-    global transmissionIsSequential ; current transmission mode
-    return transmissionIsSequential ? "Sequential" : "H-Pattern"
-} ; end modetext
-
-; =============================================================================
-; ShowLiveModeStatus(changedSetting)
-; -----------------------------------------------------------------------------
-; Shows a short tooltip after a live hotkey changes a mode setting.
+; Examples:
+;   SaveStatCount("Session", "Shifts", sessionShiftCount)
 ;
-; Live hotkeys change the running script state only. They do not write back to
-; config.ini. Reloading RealManual restores the saved config file values.
-; =============================================================================
-ShowLiveModeStatus(changedSetting) {
-    global transmissionIsSequential, requireClutch, clutchActsAsNeutral, invertSequentialAxis, maxForwardGear ; live settings
-    global enableShifterHandbrake, invertShifterHandbrake ; shifter handbrake settings
-    global toggleTransmissionButton, toggleClutchButton, toggleNeutralButton, toggleSequentialInvertButton ; mode hotkeys
-    global toggleFiveGearModeButton, toggleShifterHandbrakeButton, toggleShifterHandbrakeInvertButton ; feature hotkeys
-    global enableStalling, toggleStallingButton ; stalling
-    global stopwatchButton, stopwatchLapButton, stopwatchClearButton
-    global helpButton
+; Returns:
+;   true  = value written successfully
+;   false = stats.txt could not be updated
+; ==========================================================================================================================================================
+SaveStatCount(section, key, value) {
+    global statsFile
 
-    message := changedSetting "`n"
-    message .= "Transmission: " ModeText() " [" toggleTransmissionButton "]`n"
-    message .= "Clutch Required: " BoolText(requireClutch) " [" toggleClutchButton "]`n"
-    message .= "Clutch -> Neutral: " BoolText(clutchActsAsNeutral) " [" toggleNeutralButton "]`n"
-    message .= "Sequential Invert: " BoolText(invertSequentialAxis) " [" toggleSequentialInvertButton "]`n"
-    message .= "Max Gear: " maxForwardGear " [" toggleFiveGearModeButton "]`n"
-    message .= "Shifter Handbrake: " BoolText(enableShifterHandbrake) " [" toggleShifterHandbrakeButton "]`n"
-    message .= "Shifter HB Invert: " BoolText(invertShifterHandbrake) " [" toggleShifterHandbrakeInvertButton "]"
-    message .= "`nStalling: " BoolText(enableStalling) " [" toggleStallingButton "]"
-    message .= "`nStopwatch Start/Pause: [" stopwatchButton "]"
-    message .= "`nStopwatch Lap: [" stopwatchLapButton "]"
-    message .= "`nStopwatch Clear: [" stopwatchClearButton "]"
-    message .= "`nHelp: [" helpButton "]"
+    try {
+        IniWrite(
+            value,
+            statsFile,
+            section,
+            key
+        )
 
-    ShowToolTipMessage(message) ; displays optional tooltip message
-} ; end showlivemodestatus
+        return true
+    } catch {
+        return false
+    }
+} ; end savestatcount
 
-; =============================================================================
-; ShowToolTipMessage(message)
-; -----------------------------------------------------------------------------
-; Displays an optional tooltip based on configuration.
+; ==========================================================================================================================================================
+; InitializeStats()
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
+; Loads the persistent statistics state from stats.txt.
 ;
-; All RealManual tooltip messages should go through this function instead of
-; calling ToolTip() directly. This allows disabling informational popups
-; globally without changing script behavior.
-; =============================================================================
-ShowToolTipMessage(message) {
-    
-    global enableToolTips, toolTipDurationMs ; notification settings
+; Session statistics belong to one NFSMW speed.exe process and remain persisted so reloading RealManual during the same game process does not lose them.
+;
+; The NFSMW process tracker later decides whether the stored session should be:
+;   resumed
+;   finalized into AllTime
+;   replaced by a new session
+;
+; A Session block with ProcessPid=0 is considered inactive and must contain zero counters.
+; ==========================================================================================================================================================
+InitializeStats() {
+    global sessionProcessPid
 
-    if !enableToolTips { ; checks whether tooltips are disabled
+    global sessionShiftCount
+    global sessionStallCount
+    global sessionRaceRestartCount
+
+    global allTimeShiftCount
+    global allTimeStallCount
+    global allTimeRaceRestartCount
+
+    sessionProcessPid := ReadStatCount("Session", "ProcessPid")
+
+    sessionShiftCount := ReadStatCount("Session", "Shifts")
+    sessionStallCount := ReadStatCount("Session", "Stalls")
+    sessionRaceRestartCount := ReadStatCount("Session", "RaceRestarts")
+
+    allTimeShiftCount := ReadStatCount("AllTime", "Shifts")
+    allTimeStallCount := ReadStatCount("AllTime", "Stalls")
+    allTimeRaceRestartCount := ReadStatCount("AllTime", "RaceRestarts")
+
+    if sessionProcessPid = 0
+        && (
+            sessionShiftCount != 0
+            || sessionStallCount != 0
+            || sessionRaceRestartCount != 0
+        ) {
+
+        sessionShiftCount := 0
+        sessionStallCount := 0
+        sessionRaceRestartCount := 0
+
+        SaveStatCount("Session", "Shifts", 0)
+        SaveStatCount("Session", "Stalls", 0)
+        SaveStatCount("Session", "RaceRestarts", 0)
+    } ; end inactive-session normalization
+} ; end initializestats
+
+; ==========================================================================================================================================================
+; ApplyStatisticsStartupOptions()
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
+; Applies one-shot statistics maintenance options after NFSMW session ownership has been synchronized.
+; ==========================================================================================================================================================
+ApplyStatisticsStartupOptions() {
+    global configFile
+    global clearAllTimeOnStartup
+
+    global allTimeShiftCount
+    global allTimeStallCount
+    global allTimeRaceRestartCount
+
+    if !clearAllTimeOnStartup {
         return
-    } ; end enabled check
+    } ; end no-clear guard
 
-    ToolTip message ; show tooltip
-    SetTimer () => ToolTip(), -toolTipDurationMs ; clear tooltip after configured duration
-} ; end showtooltipmessage
+    allTimeShiftCount := 0
+    allTimeStallCount := 0
+    allTimeRaceRestartCount := 0
 
-; =============================================================================
-; IsValidPercent(value)
-; -----------------------------------------------------------------------------
-; Validates a joystick threshold value.
+    SaveStatCount("AllTime", "Shifts", 0)
+    SaveStatCount("AllTime", "Stalls", 0)
+    SaveStatCount("AllTime", "RaceRestarts", 0)
+
+    try {
+        IniWrite("0", configFile, "Statistics", "ClearAllTimeOnStartup")
+    }
+} ; end applystatisticsstartupoptions
+
+; ==========================================================================================================================================================
+; StartStatsSession(processPid)
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
+; Begins a new statistics session owned by one NFSMW process.
 ;
-; Valid if 0 <= value <= 100
-; =============================================================================
-IsValidPercent(value) {
-    return value >= 0 && value <= 100
-} ; end isvalidpercent
+; Every new game process starts with zero Session counters. AllTime remains untouched until this session is finalized.
+; ==========================================================================================================================================================
+StartStatsSession(processPid) {
+    global sessionProcessPid
 
-; =============================================================================
-; IsConfigured(value)
-; -----------------------------------------------------------------------------
-; Checks whether a config field contains usable text.
+    global sessionShiftCount
+    global sessionStallCount
+    global sessionRaceRestartCount
+
+    global statsLastGear
+
+    if processPid <= 0 {
+        return false
+    } ; end invalid PID guard
+
+    sessionProcessPid := processPid
+
+    sessionShiftCount := 0
+    sessionStallCount := 0
+    sessionRaceRestartCount := 0
+
+    statsLastGear := 1
+
+    SaveStatCount("Session", "ProcessPid", sessionProcessPid)
+    SaveStatCount("Session", "Shifts", 0)
+    SaveStatCount("Session", "Stalls", 0)
+    SaveStatCount("Session", "RaceRestarts", 0)
+
+    UpdateStatsDisplay()
+
+    return true
+} ; end startstatssession
+
+; ==========================================================================================================================================================
+; FinalizeStatsSession()
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
+; Completes the active NFSMW statistics session.
 ;
-; This catches blank mappings such as:
-;   Gear1Button=
+; Session counters are added to their corresponding AllTime counters once, then the Session block is reset to its inactive state.
+; ==========================================================================================================================================================
+FinalizeStatsSession() {
+    global sessionProcessPid
+
+    global sessionShiftCount
+    global sessionStallCount
+    global sessionRaceRestartCount
+
+    global allTimeShiftCount
+    global allTimeStallCount
+    global allTimeRaceRestartCount
+
+    if sessionProcessPid = 0 {
+        return false
+    } ; end inactive-session guard
+
+    if sessionShiftCount != 0 {
+        allTimeShiftCount += sessionShiftCount
+        SaveStatCount("AllTime", "Shifts", allTimeShiftCount)
+    } ; end shift transfer
+
+    if sessionStallCount != 0 {
+        allTimeStallCount += sessionStallCount
+        SaveStatCount("AllTime", "Stalls", allTimeStallCount)
+    } ; end stall transfer
+
+    if sessionRaceRestartCount != 0 {
+        allTimeRaceRestartCount += sessionRaceRestartCount
+        SaveStatCount("AllTime", "RaceRestarts", allTimeRaceRestartCount)
+    } ; end race-restart transfer
+
+    sessionProcessPid := 0
+
+    sessionShiftCount := 0
+    sessionStallCount := 0
+    sessionRaceRestartCount := 0
+
+    SaveStatCount("Session", "ProcessPid", 0)
+    SaveStatCount("Session", "Shifts", 0)
+    SaveStatCount("Session", "Stalls", 0)
+    SaveStatCount("Session", "RaceRestarts", 0)
+
+    UpdateStatsDisplay()
+
+    return true
+} ; end finalizestatssession
+
+; ==========================================================================================================================================================
+; SynchronizeStatsSession(processPid)
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
+; Synchronizes persistent Session ownership with the currently observed NFSMW
+; process.
 ;
-; It does not prove the mapping is correct; it only proves the setting exists.
-; =============================================================================
-IsConfigured(value) {
-    return Trim(value) != "" ; returns true when value contains text
-} ; end isconfigured
+; Same PID:
+;   resume the existing session
+;
+; Different PID:
+;   finalize the stored session, then start a new one
+;
+; No running process:
+;   finalize any stored active session
+; ==========================================================================================================================================================
+SynchronizeStatsSession(processPid) {
+    global sessionProcessPid
 
-; =============================================================================
-; SECTION 13: STOPWATCH
-; =============================================================================
+    if processPid = sessionProcessPid {
+        return
+    } ; end already-synchronized guard
 
-; =============================================================================
+    if sessionProcessPid != 0 {
+        FinalizeStatsSession()
+    } ; end previous-session finalization
+
+    if processPid {
+        StartStatsSession(processPid)
+    } ; end new-session start
+} ; end synchronizestatssession
+
+; ==========================================================================================================================================================
+; RecordShift(targetGear)
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
+; Records one accepted driver-requested gear change.
+;
+; targetGear:
+;   -1 = reverse
+;    0 = neutral
+;   1-6 = forward gears
+;
+; statsLastGear tracks the last gear recognized by the statistics subsystem.
+; Repeating the same gear does not create another shift.
+;
+; statsLastGear is maintained even when shift tracking is disabled so enabling
+; or otherwise synchronizing transmission state cannot leave the statistics
+; gear baseline stale.
+;
+; System/recovery operations should update statsLastGear directly rather than
+; calling RecordShift(), because those operations are synchronization events,
+; not driver shifts.
+; ==========================================================================================================================================================
+RecordShift(targetGear) {
+    global trackShifts
+    global statsLastGear
+    global sessionShiftCount
+    global stallSuppressedUntilShift
+
+    ; New-game stall suppression
+    ; Reaching RecordShift() means RealManual accepted a legitimate driver shift.
+    stallSuppressedUntilShift := false
+
+    if targetGear = statsLastGear {
+        return
+    } ; end unchanged gear guard
+
+    statsLastGear := targetGear
+
+    if !trackShifts {
+        return
+    } ; end tracking feature guard
+
+    sessionShiftCount++
+
+    SaveStatCount(
+        "Session",
+        "Shifts",
+        sessionShiftCount
+    )
+
+    UpdateStatsDisplay()
+} ; end recordshift
+
+; ==========================================================================================================================================================
+; RecordStall()
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
+; Records one simulated engine stall when stall statistics are enabled.
+;
+; Only the Session stall counter is persisted here.
+; AllTime is updated when the NFSMW process session is finalized.
+; ==========================================================================================================================================================
+RecordStall() {
+    global trackStalls
+    global sessionStallCount
+
+    if !trackStalls {
+        return
+    } ; end tracking feature guard
+
+    sessionStallCount++
+
+    SaveStatCount(
+        "Session",
+        "Stalls",
+        sessionStallCount
+    )
+
+    UpdateStatsDisplay()
+} ; end recordstall
+
+; ==========================================================================================================================================================
+; RecordRaceRestart(*)
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
+; Manually records one race restart when race-restart statistics are enabled.
+;
+; Only the Session race-restart counter is persisted here.
+; AllTime is updated when the NFSMW process session is finalized.
+; ==========================================================================================================================================================
+RecordRaceRestart(*) {
+    global trackRaceRestarts
+    global sessionRaceRestartCount
+
+    if !trackRaceRestarts {
+        return
+    } ; end tracking feature guard
+
+    sessionRaceRestartCount++
+
+    SaveStatCount(
+        "Session",
+        "RaceRestarts",
+        sessionRaceRestartCount
+    )
+
+    UpdateStatsDisplay()
+} ; end recordracerestart
+
+; ==========================================================================================================================================================
+; IsStatsDisplayActive()
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
+; Returns whether the statistics overlay currently has at least one selected
+; statistic to display.
+;
+; This describes display selection only.
+;
+; It does NOT determine whether statistics are being tracked. Tracking is
+; controlled separately by the TrackShifts, TrackStalls, and TrackRaceRestarts
+; configuration settings.
+;
+; Returns:
+;   true  = at least one statistics line is selected for display
+;   false = no statistics lines are selected
+; ==========================================================================================================================================================
+IsStatsDisplayActive() {
+    global showShiftStats
+    global showStallStats
+    global showRaceRestartStats
+
+    return showShiftStats
+        || showStallStats
+        || showRaceRestartStats
+} ; end isstatsdisplayactive
+
+; ==========================================================================================================================================================
+; GetOverlayX(overlayName)
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
+; Returns the horizontal position for either the statistics or stopwatch
+; tooltip.
+;
+; Overlay placement policy:
+;
+;   only stats active:
+;       stats uses overlayPrimaryX
+;
+;   only stopwatch active:
+;       stopwatch uses overlayPrimaryX
+;
+;   both active:
+;       whichever overlay was activated first keeps overlayPrimaryX
+;       whichever overlay was activated second uses overlaySecondaryX
+;
+; overlayActivationCounter provides a monotonically increasing activation
+; sequence. The smaller nonzero order value belongs to the older overlay.
+;
+; overlayName:
+;   "stats"
+;   "stopwatch"
+; ==========================================================================================================================================================
+GetOverlayX(overlayName) {
+    global stopwatchStarted
+    global statsOverlayOrder, stopwatchOverlayOrder
+    global overlayPrimaryX, overlaySecondaryX
+
+    statsActive := IsStatsDisplayActive()
+    stopwatchActive := stopwatchStarted
+
+    ; One overlay active
+    if !statsActive || !stopwatchActive {
+        return overlayPrimaryX
+    } ; end single-overlay branch
+
+    ; Both overlays active
+    if overlayName = "stats" {
+        ; Stats appeared first, so they retain the primary position.
+        if statsOverlayOrder < stopwatchOverlayOrder {
+            return overlayPrimaryX
+        }
+        ; Stopwatch appeared first, so stats move to the secondary position.
+        return overlaySecondaryX
+    } ; end stats positioning
+
+    if overlayName = "stopwatch" {
+        ; Stopwatch appeared first, so it retains the primary position.
+        if stopwatchOverlayOrder < statsOverlayOrder {
+            return overlayPrimaryX
+        }
+        ; Stats appeared first, so stopwatch moves to the secondary position.
+        return overlaySecondaryX
+    } ; end stopwatch positioning
+
+
+    ; Unknown overlay names safely fall back to the primary position.
+    return overlayPrimaryX
+} ; end getoverlayx
+
+; ==========================================================================================================================================================
+; UpdateStatsDisplay()
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
+; Rebuilds the optional session-statistics tooltip.
+;
+; Only statistics that satisfy BOTH conditions are shown:
+;
+;   1. the statistic is enabled for tracking in config.ini
+;   2. the user has toggled that statistic on for display
+;
+; The tooltip contains SESSION values only.
+; Persistent all-time values remain stored in stats.txt.
+;
+; Statistics use tooltip ID 3 so the panel can coexist with the stopwatch,
+; which uses tooltip ID 2.
+;
+; If no statistics are selected, or statistics/tooltips are disabled, tooltip
+; ID 3 is cleared.
+; ==========================================================================================================================================================
+UpdateStatsDisplay() {
+    global enableToolTips
+    global trackShifts, trackStalls, trackRaceRestarts
+    global showShiftStats, showStallStats, showRaceRestartStats
+    global sessionShiftCount, sessionStallCount, sessionRaceRestartCount
+    global statsToolTipId
+    global overlayY
+
+    if !enableToolTips
+        || !IsStatsDisplayActive() {
+        ; Clear only the statistics tooltip.
+        ToolTip(
+            ,
+            ,
+            ,
+            statsToolTipId
+        )
+
+        return
+    } ; end display availability guard
+
+    message := "Session Stats"
+
+    if trackShifts && showShiftStats {
+        message .=
+            "`nShifts: "
+            . sessionShiftCount
+    } ; end shift line
+
+    if trackStalls && showStallStats {
+        message .=
+            "`nStalls: "
+            . sessionStallCount
+    } ; end stall line
+
+    if trackRaceRestarts && showRaceRestartStats {
+        message .=
+            "`nRace Restarts: "
+            . sessionRaceRestartCount
+    } ; end race-restart line
+
+    ; Show statistics overlay
+    ToolTip(
+        message,
+        GetOverlayX("stats"),
+        overlayY,
+        statsToolTipId
+    )
+} ; end updatestatsdisplay
+
+; ==========================================================================================================================================================
+; ToggleStatsDisplay(statName)
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
+; Toggles one statistic line in the session-statistics overlay.
+;
+; Supported statName values:
+;
+;   "shifts"
+;   "stalls"
+;   "restarts"
+;
+; A statistic can be displayed only when its corresponding tracking option is
+; enabled in config.ini.
+;
+; Overlay activation ordering:
+;
+;   When the FIRST statistics line becomes visible:
+;       the statistics panel receives a new activation order.
+;
+;   When additional statistics are added to an already-visible panel:
+;       the existing order is preserved.
+;
+;   When the LAST visible statistics line is removed:
+;       statsOverlayOrder returns to zero.
+;
+; This preserves the behavior where whichever overlay appeared first
+; remains on the left side.
+; ==========================================================================================================================================================
+ToggleStatsDisplay(statName) {
+    global trackShifts, trackStalls, trackRaceRestarts
+    global showShiftStats, showStallStats, showRaceRestartStats
+    global overlayActivationCounter
+    global statsOverlayOrder
+    global stopwatchStarted
+
+    wasActive := IsStatsDisplayActive()
+
+    ; Toggle requested statistic
+    switch statName {
+        case "shifts":
+            if !trackShifts {
+                return
+            }
+
+            showShiftStats := !showShiftStats
+
+        case "stalls":
+
+            if !trackStalls {
+                return
+            }
+
+            showStallStats := !showStallStats
+
+        case "restarts":
+
+            if !trackRaceRestarts {
+                return
+            }
+
+            showRaceRestartStats := !showRaceRestartStats
+
+        default:
+            return
+    } ; end statistic selection
+
+    isActive := IsStatsDisplayActive()
+
+    ; Statistics overlay became visible
+    if !wasActive && isActive {
+        overlayActivationCounter++
+
+        statsOverlayOrder :=
+            overlayActivationCounter
+    } ; end stats activation
+
+    ; Statistics overlay became hidden
+    if wasActive && !isActive {
+        statsOverlayOrder := 0
+    } ; end stats deactivation
+
+    UpdateStatsDisplay()
+
+    if stopwatchStarted {
+        UpdateStopwatchDisplay()
+    } ; end stopwatch layout refresh
+} ; end togglestatsdisplay
+
+
+; ==========================================================================================================================================================
+; SECTION 15: STOPWATCH
+; ==========================================================================================================================================================
+
+; ==========================================================================================================================================================
 ; FormatStopwatchTime(totalMs)
-; -----------------------------------------------------------------------------
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
 ; Converts an elapsed millisecond count into stopwatch-style text.
 ;
 ; Under one hour:
@@ -1126,7 +3282,7 @@ IsConfigured(value) {
 ;
 ; One hour or longer:
 ;   HH:MM:SS.mmm
-; =============================================================================
+; ==========================================================================================================================================================
 FormatStopwatchTime(totalMs) {
     totalMs := Max(0, Floor(totalMs))
 
@@ -1146,14 +3302,14 @@ FormatStopwatchTime(totalMs) {
     return Format("{:02}:{:02}.{:03}", minutes, seconds, milliseconds)
 } ; end formatstopwatchtime
 
-; =============================================================================
+; ==========================================================================================================================================================
 ; GetStopwatchElapsedMs()
-; -----------------------------------------------------------------------------
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
 ; Returns the elapsed time of the current stopwatch segment.
 ;
 ; While running, elapsed time includes time since stopwatchStartTime.
 ; While paused, only the previously accumulated time is returned.
-; =============================================================================
+; ==========================================================================================================================================================
 GetStopwatchElapsedMs() {
     global stopwatchStarted, stopwatchRunning
     global stopwatchStartTime, stopwatchAccumulatedMs
@@ -1171,105 +3327,170 @@ GetStopwatchElapsedMs() {
     return elapsedMs
 } ; end getstopwatchelapsedms
 
-; =============================================================================
+; ==========================================================================================================================================================
 ; UpdateStopwatchDisplay()
-; -----------------------------------------------------------------------------
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
 ; Builds the persistent stopwatch tooltip.
 ;
 ; Completed laps remain frozen above the current timer.
 ; The current timer shows whether it is running or paused.
-; =============================================================================
+;
+; Stopwatch position is coordinated with the statistics overlay:
+;
+;   first overlay activated  -> primary position
+;   second overlay activated -> secondary position
+; ==========================================================================================================================================================
 UpdateStopwatchDisplay() {
     global enableToolTips
-    global stopwatchStarted, stopwatchRunning, stopwatchLaps
+    global stopwatchStarted
+    global stopwatchRunning
+    global stopwatchLaps
     global stopwatchToolTipId
+    global overlayY
 
     if !enableToolTips {
-        ToolTip(,,, stopwatchToolTipId)
+        ToolTip(
+            ,
+            ,
+            ,
+            stopwatchToolTipId
+        )
+
         return
-    }
+    } ; end tooltip feature guard
 
     if !stopwatchStarted {
-        ToolTip(,,, stopwatchToolTipId)
+        ToolTip(
+            ,
+            ,
+            ,
+            stopwatchToolTipId
+        )
+
         return
-    }
+    } ; end stopwatch-state guard
 
     message := "Stopwatch"
 
     for lapNumber, lapTime in stopwatchLaps {
-        message .= "`n" lapNumber ". " FormatStopwatchTime(lapTime)
-    }
+        message .=
+            "`n"
+            . lapNumber
+            . ". "
+            . FormatStopwatchTime(lapTime)
+    } ; end completed-lap loop
 
     currentNumber := stopwatchLaps.Length + 1
     currentTime := GetStopwatchElapsedMs()
 
     if stopwatchRunning {
-        message .= "`n" currentNumber ". " FormatStopwatchTime(currentTime) "  [RUNNING]"
-    } else {
-        message .= "`n" currentNumber ". " FormatStopwatchTime(currentTime) "  [PAUSED]"
-    }
+        message .=
+            "`n"
+            . currentNumber
+            . ". "
+            . FormatStopwatchTime(currentTime)
+            . "  [RUNNING]"
 
-    ToolTip(message, 20, 20, stopwatchToolTipId)
+    } else {
+        message .=
+            "`n"
+            . currentNumber
+            . ". "
+            . FormatStopwatchTime(currentTime)
+            . "  [PAUSED]"
+    } ; end current stopwatch state
+
+    ToolTip(
+        message,
+        GetOverlayX("stopwatch"),
+        overlayY,
+        stopwatchToolTipId
+    )
 } ; end updatestopwatchdisplay
 
-; =============================================================================
+; ==========================================================================================================================================================
 ; ToggleStopwatch(*)
-; -----------------------------------------------------------------------------
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
 ; Controls the current stopwatch segment.
 ;
 ; Not started:
 ;   starts the stopwatch
+;   assigns the stopwatch its overlay activation order
 ;
 ; Running:
 ;   pauses at the current elapsed time
 ;
 ; Paused:
 ;   resumes from the preserved elapsed time
-; =============================================================================
+;
+; Pausing/resuming doesn't change overlay order because the stopwatch remains
+; visible throughout both states.
+; ==========================================================================================================================================================
 ToggleStopwatch(*) {
     global stopwatchStarted, stopwatchRunning
-    global stopwatchStartTime, stopwatchAccumulatedMs
-    global stopwatchRefreshMs
+    global stopwatchStartTime
+    global stopwatchAccumulatedMs, stopwatchRefreshMs
+    global overlayActivationCounter, stopwatchOverlayOrder
 
+    ; Initial start
     if !stopwatchStarted {
         stopwatchStarted := true
         stopwatchRunning := true
+
         stopwatchStartTime := A_TickCount
         stopwatchAccumulatedMs := 0
 
+        overlayActivationCounter++
+        stopwatchOverlayOrder := overlayActivationCounter
+
         UpdateStopwatchDisplay()
+
+        if IsStatsDisplayActive() {
+            UpdateStatsDisplay()
+        }
+
         SetTimer(UpdateStopwatchDisplay, Max(20, stopwatchRefreshMs))
+
         return
     } ; end initial start
 
+    ; Pause
     if stopwatchRunning {
-        stopwatchAccumulatedMs += A_TickCount - stopwatchStartTime
+        stopwatchAccumulatedMs +=
+            A_TickCount - stopwatchStartTime
+
         stopwatchRunning := false
 
-        SetTimer(UpdateStopwatchDisplay, 0) ; timer no longer needs continuous updates while paused
-        UpdateStopwatchDisplay() ; preserves paused value on screen
+        ; paused stopwatch no longer requires continuous refreshes.
+        SetTimer(UpdateStopwatchDisplay, 0)
+
+        UpdateStopwatchDisplay()
+
         return
     } ; end pause
 
+    ; Resume
     stopwatchRunning := true
     stopwatchStartTime := A_TickCount
 
     UpdateStopwatchDisplay()
+
     SetTimer(UpdateStopwatchDisplay, Max(20, stopwatchRefreshMs))
 } ; end togglestopwatch
 
-; =============================================================================
+; ==========================================================================================================================================================
 ; LapStopwatch(*)
-; -----------------------------------------------------------------------------
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
 ; Freezes the current stopwatch segment and starts a new segment from zero.
 ;
 ; Completed laps remain visible above the active timer.
-; The total number of displayed lines is limited by Stopwatch.MaxLines.
-; =============================================================================
+; The total number of displayed lines is limited by Stopwatch.StopwatchMaxLines.
+; ==========================================================================================================================================================
 LapStopwatch(*) {
     global stopwatchStarted, stopwatchRunning
-    global stopwatchStartTime, stopwatchAccumulatedMs
-    global stopwatchLaps, stopwatchMaxLines, stopwatchRefreshMs
+    global stopwatchStartTime
+    global stopwatchAccumulatedMs, stopwatchRefreshMs
+    global stopwatchLaps, stopwatchMaxLines, 
 
     if !stopwatchStarted {
         return
@@ -1287,7 +3508,7 @@ LapStopwatch(*) {
 
     stopwatchLaps.Push(currentTime) ; freezes completed lap
 
-    ; Every new lap begins immediately from zero.
+    ; Every new lap begins from zero.
     stopwatchAccumulatedMs := 0
     stopwatchStartTime := A_TickCount
     stopwatchRunning := true
@@ -1296,211 +3517,574 @@ LapStopwatch(*) {
     SetTimer(UpdateStopwatchDisplay, Max(20, stopwatchRefreshMs))
 } ; end lapstopwatch
 
-; =============================================================================
+; ==========================================================================================================================================================
 ; ClearStopwatch(*)
-; -----------------------------------------------------------------------------
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
 ; Completely resets stopwatch state and removes the stopwatch display.
-; =============================================================================
+;
+; Clearing also removes the stopwatch from shared overlay ordering.
+;
+; If the statistics panel is still active, it is immediately refreshed so it
+; can reclaim the primary upper-left position.
+; ==========================================================================================================================================================
 ClearStopwatch(*) {
     global stopwatchStarted, stopwatchRunning
-    global stopwatchStartTime, stopwatchAccumulatedMs
-    global stopwatchLaps, stopwatchToolTipId
+    global stopwatchStartTime
+    global stopwatchAccumulatedMs
+    global stopwatchLaps
+    global stopwatchToolTipId
+    global stopwatchOverlayOrder
 
+    ; Stop stopwatch refresh timer
     SetTimer(UpdateStopwatchDisplay, 0)
 
+    ; Reset stopwatch state
     stopwatchStarted := false
     stopwatchRunning := false
+
     stopwatchStartTime := 0
     stopwatchAccumulatedMs := 0
+
     stopwatchLaps := []
 
-    ToolTip(,,, stopwatchToolTipId) ; clears only the stopwatch tooltip
+    ; Remove From Shared Overlay Layout
+    stopwatchOverlayOrder := 0
+
+    ; Clear Stopwatch Tooltip
+    ToolTip(
+        ,
+        ,
+        ,
+        stopwatchToolTipId
+    )
+
+    ; Reposition Remaining Statistics Overlay
+    if IsStatsDisplayActive() {
+        UpdateStatsDisplay()
+    }
 } ; end clearstopwatch
 
 
-; =============================================================================
-; SECTION 14: DYNAMIC HOTKEYS AND LIVE MODE TOGGLES
-; =============================================================================
+; ==========================================================================================================================================================
+; SECTION 16: TRANSIENT STATE CLEAR / DISARM HELPERS
+; ==========================================================================================================================================================
 
-; =============================================================================
+; ==========================================================================================================================================================
+; ClearEdgeInputState()
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
+; Clears cached state for edge-triggered transmission inputs.
+;
+; Used whenever RealManual must forget previously observed button edges so an
+; old press cannot survive a mode change, reset, engine-state transition, or
+; other synchronization event.
+;
+; Paddle and keyboard synchronization are disarmed here along with their edge
+; history. sequentialShifterArmed and shifterHandbrakeArmed are deliberately
+; left to the calling context.
+; ==========================================================================================================================================================
+ClearEdgeInputState() {
+    global lastUpshiftPressed, lastDownshiftPressed
+    global lastPaddleUpshiftPressed, lastPaddleDownshiftPressed
+    global paddleSyncArmed
+    global reverseCommandLatched
+    global lastKeyboardUpshiftPressed, lastKeyboardDownshiftPressed
+    global keyboardShiftSyncArmed
+
+    lastUpshiftPressed := false
+    lastDownshiftPressed := false
+
+    lastPaddleUpshiftPressed := false
+    lastPaddleDownshiftPressed := false
+    paddleSyncArmed := false
+
+    lastKeyboardUpshiftPressed := false
+    lastKeyboardDownshiftPressed := false
+    keyboardShiftSyncArmed := false
+
+    reverseCommandLatched := false
+} ; end clearedgeinputstate
+
+; ==========================================================================================================================================================
+; ClearClutchTransactionState()
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
+; Clears transient state belonging to the current clutch transaction.
+;
+; Used when a mode change, synchronization event, reverse transition, or
+; completed H-pattern engagement invalidates the previous clutch cycle.
+; ==========================================================================================================================================================
+ClearClutchTransactionState() {
+    global lastClutchPressed
+    global clutchNeutralSent
+
+    lastClutchPressed := false
+    clutchNeutralSent := false
+} ; end clearclutchtransactionstate
+
+; ==========================================================================================================================================================
+; ClearTransmissionInputState()
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
+; Clears edge-triggered input history and any active clutch transaction.
+;
+; Used when RealManual deliberately establishes a new synchronized
+; transmission state.
+; ==========================================================================================================================================================
+ClearTransmissionInputState() {
+    ClearEdgeInputState()
+    ClearClutchTransactionState()
+} ; end cleartransmissioninputstate
+
+; ==========================================================================================================================================================
+; DisarmEdgeInputs()
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
+; Invalidates edge-triggered controller state after RealManual temporarily
+; stops observing input, such as pause or focus loss.
+; ==========================================================================================================================================================
+DisarmEdgeInputs() {
+    global sequentialShifterArmed, shifterHandbrakeArmed
+
+    ClearEdgeInputState()
+
+    sequentialShifterArmed := false
+    shifterHandbrakeArmed := false
+} ; end disarmedgeinputs
+
+; ==========================================================================================================================================================
+; ClearStallDetectionState()
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
+; Clears transient state belonging to an in-progress stall-detection cycle.
+; ==========================================================================================================================================================
+ClearStallDetectionState() {
+    global stallDetectionArmed
+    global noInputStallStartTime
+
+    stallDetectionArmed := false
+    noInputStallStartTime := 0
+} ; end clearstalldetectionstate
+
+; ==========================================================================================================================================================
+; ClearBrakeResetStallGraceState()
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
+; Clears the stall-protection state created by a completed sequential
+; brake-hold gear reset.
+; ==========================================================================================================================================================
+ClearBrakeResetStallGraceState() {
+    global brakeResetStallGraceActive
+    global brakeResetReleaseTime
+
+    brakeResetStallGraceActive := false
+    brakeResetReleaseTime := 0
+} ; end clearbrakeresetstallgracestate
+
+; ==========================================================================================================================================================
+; ClearSequentialBrakeHoldTimer()
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
+; Clears the in-progress sequential brake-hold timer when continuous input
+; observation is interrupted, such as by focus loss, pause, or menu automation.
+; ==========================================================================================================================================================
+ClearSequentialBrakeHoldTimer() {
+    global brakeHoldStartTime
+
+    brakeHoldStartTime := 0
+} ; end clearsequentialbrakeholdtimer
+
+; ==========================================================================================================================================================
+; ClearSequentialBrakeResetState()
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
+; Completely resets all transient state belonging to the sequential brake-hold
+; gear-reset subsystem.
+;
+; Used when the subsystem's context becomes invalid, such as a transmission
+; mode change, engine state change, or manual recovery reset.
+; ==========================================================================================================================================================
+ClearSequentialBrakeResetState() {
+    global brakeHoldStartTime
+    global brakeHoldResetTriggered
+    global sequentialReverseAssistEligible
+
+    brakeHoldStartTime := 0
+    brakeHoldResetTriggered := false
+    sequentialReverseAssistEligible := false
+
+    ClearBrakeResetStallGraceState()
+} ; end clearsequentialbrakeresetstate
+
+
+; ==========================================================================================================================================================
+; SECTION 17: DYNAMIC HOTKEYS AND LIVE MODE TOGGLES
+; ==========================================================================================================================================================
+
+; ==========================================================================================================================================================
+; GetDynamicHotkeyDefinitions()
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
+; Returns the complete set of configurable RealManual hotkeys.
+;
+; Each definition contains:
+;   setting  = config.ini key name
+;   label    = human-readable name used by validation
+;   hotkey   = configured AutoHotkey hotkey string
+;   callback = function object executed when the hotkey fires
+;
+; Registration and validation both use this same definition list so the two
+; systems cannot silently drift apart.
+; ==========================================================================================================================================================
+GetDynamicHotkeyDefinitions() {
+    global helpButton, resetButton, pauseButton, reloadButton
+    global toggleTransmissionModeButton, toggleSequentialShifterInvertButton
+    global toggleClutchRequiredButton, toggleClutchNeutralButton
+    global toggleMaxForwardGearButton
+    global toggleShifterHandbrakeButton
+    global ignitionButton, toggleStallingButton
+    global stopwatchButton, stopwatchLapButton, stopwatchClearButton
+    global statsShiftsButton, statsStallsButton
+    global statsRaceRestartsButton, raceRestartButton
+    global maxVideoSettingsButton
+    global saveInstantReplayButton, captureScreenshotButton
+
+    return [
+        {
+            setting: "HelpButton",
+            label: "Help",
+            hotkey: helpButton,
+            callback: ShowHotkeyHelp
+        },
+        {
+            setting: "ResetButton",
+            label: "Reset",
+            hotkey: resetButton,
+            callback: (*) => ResetInputs()
+        },
+        {
+            setting: "PauseButton",
+            label: "Pause",
+            hotkey: pauseButton,
+            callback: (*) => ToggleScriptPause()
+        },
+        {
+            setting: "ReloadButton",
+            label: "Reload",
+            hotkey: reloadButton,
+            callback: (*) => Reload()
+        },
+        {
+            setting: "ToggleTransmissionModeButton",
+            label: "Transmission Mode Toggle",
+            hotkey: toggleTransmissionModeButton,
+            callback: (*) => ToggleTransmissionMode()
+        },
+        {
+            setting: "ToggleSequentialShifterInvertButton",
+            label: "Sequential Shifter Invert",
+            hotkey: toggleSequentialShifterInvertButton,
+            callback: (*) => ToggleSequentialShifterInvert()
+        },
+        {
+            setting: "ToggleClutchRequiredButton",
+            label: "Clutch Required Toggle",
+            hotkey: toggleClutchRequiredButton,
+            callback: (*) => ToggleClutchRequired()
+        },
+        {
+            setting: "ToggleClutchNeutralButton",
+            label: "Clutch Neutral Toggle",
+            hotkey: toggleClutchNeutralButton,
+            callback: (*) => ToggleClutchNeutral()
+        },
+        {
+            setting: "ToggleShifterHandbrakeButton",
+            label: "Shifter Handbrake Toggle",
+            hotkey: toggleShifterHandbrakeButton,
+            callback: (*) => ToggleShifterHandbrake()
+        },
+        {
+            setting: "ToggleMaxForwardGearButton",
+            label: "Maximum Forward Gear Toggle",
+            hotkey: toggleMaxForwardGearButton,
+            callback: (*) => ToggleMaxForwardGear()
+        },
+        {
+            setting: "IgnitionButton",
+            label: "Ignition",
+            hotkey: ignitionButton,
+            callback: HandleIgnitionButton
+        },
+        {
+            setting: "ToggleStallingButton",
+            label: "Stalling Toggle",
+            hotkey: toggleStallingButton,
+            callback: ToggleStalling
+        },
+        {
+            setting: "StopwatchButton",
+            label: "Stopwatch Start/Pause",
+            hotkey: stopwatchButton,
+            callback: ToggleStopwatch
+        },
+        {
+            setting: "StopwatchLapButton",
+            label: "Stopwatch Lap",
+            hotkey: stopwatchLapButton,
+            callback: LapStopwatch
+        },
+        {
+            setting: "StopwatchClearButton",
+            label: "Stopwatch Clear",
+            hotkey: stopwatchClearButton,
+            callback: ClearStopwatch
+        },
+        {
+            setting: "StatsShiftsButton",
+            label: "Stats Display - Shifts",
+            hotkey: statsShiftsButton,
+            callback: (*) => ToggleStatsDisplay("shifts")
+        },
+        {
+            setting: "StatsStallsButton",
+            label: "Stats Display - Stalls",
+            hotkey: statsStallsButton,
+            callback: (*) => ToggleStatsDisplay("stalls")
+        },
+        {
+            setting: "StatsRaceRestartsButton",
+            label: "Stats Display - Race Restarts",
+            hotkey: statsRaceRestartsButton,
+            callback: (*) => ToggleStatsDisplay("restarts")
+        },
+        {
+            setting: "RaceRestartButton",
+            label: "Record Race Restart",
+            hotkey: raceRestartButton,
+            callback: RecordRaceRestart
+        },
+        {
+            setting: "MaxVideoSettingsButton",
+            label: "Max Video Settings",
+            hotkey: maxVideoSettingsButton,
+            callback: ApplyMaxVideoSettings
+        },
+        {
+            setting: "SaveInstantReplayButton",
+            label: "Save NVIDIA Instant Replay",
+            hotkey: saveInstantReplayButton,
+            callback: SaveNvidiaInstantReplay
+        },
+        {
+            setting: "CaptureScreenshotButton",
+            label: "Capture NVIDIA Screenshot",
+            hotkey: captureScreenshotButton,
+            callback: CaptureNvidiaScreenshot
+        }
+    ]
+} ; end getdynamichotkeydefinitions
+
+; ==========================================================================================================================================================
+; TryRegisterHotkey(definition, registeredHotkeys, registrationResults)
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
+; Attempts to register one configurable hotkey safely.
+;
+; Registration policy:
+;   blank      -> skipped silently
+;   reserved   -> blocked
+;   duplicate  -> blocked; first successful assignment wins
+;   malformed  -> exception caught and reported
+;   valid      -> registered
+;
+; Results are recorded for BuildValidationText().
+; ==========================================================================================================================================================
+TryRegisterHotkey(definition, registeredHotkeys, registrationResults) {
+
+    hotkeyName := Trim(definition.hotkey)
+
+    if hotkeyName = "" {
+        return true
+    } ; end blank hotkey guard
+
+    normalizedHotkey := StrLower(hotkeyName)
+    reservedPurpose := GetReservedProtocolConflict(hotkeyName)
+
+    if reservedPurpose != "" {
+        registrationResults.Push({
+            setting: definition.setting,
+            label: definition.label,
+            hotkey: hotkeyName,
+            status: "reserved",
+            detail: reservedPurpose
+        })
+
+        return false
+    } ; end reserved protocol guard
+
+    if registeredHotkeys.Has(normalizedHotkey) {
+        registrationResults.Push({
+            setting: definition.setting,
+            label: definition.label,
+            hotkey: hotkeyName,
+            status: "duplicate",
+            detail: registeredHotkeys[normalizedHotkey]
+        })
+
+        return false
+    } ; end duplicate guard
+
+    try {
+        Hotkey(hotkeyName, definition.callback, "On")
+
+        registeredHotkeys[normalizedHotkey] := definition.label
+
+        registrationResults.Push({
+            setting: definition.setting,
+            label: definition.label,
+            hotkey: hotkeyName,
+            status: "registered",
+            detail: ""
+        })
+
+        return true
+
+    } catch as err {
+        errorText := StrReplace(
+            StrReplace(err.Message, "`r", " "),
+            "`n",
+            " "
+        )
+
+        registrationResults.Push({
+            setting: definition.setting,
+            label: definition.label,
+            hotkey: hotkeyName,
+            status: "failed",
+            detail: errorText
+        })
+
+        return false
+    } ; end protected registration
+} ; end tryregisterhotkey
+
+; ==========================================================================================================================================================
 ; RegisterDynamicHotkeys()
-; -----------------------------------------------------------------------------
-; Registers configurable hotkeys loaded from config.ini.
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
+; Attempts to register all configured RealManual hotkeys for speed.exe.
 ;
-; These hotkeys are scoped to speed.exe only, they will not trigger while 
-; outside of the game.
-;
-; Blank config fields are skipped safely.
-; =============================================================================
+; Returns an array describing the registration result of every nonblank
+; configured hotkey. BuildValidationText() consumes that result directly.
+; ==========================================================================================================================================================
 RegisterDynamicHotkeys() {
-    global helpButton, resetButton, pauseButton, reloadButton ; utility hotkeys
-    global toggleTransmissionButton, toggleSequentialInvertButton, toggleFiveGearModeButton ; transmission hotkeys
-    global toggleClutchButton, toggleNeutralButton ; clutch hotkeys
-    global toggleShifterHandbrakeButton, toggleShifterHandbrakeInvertButton ; shifter handbrake hotkeys
-    global ignitionButton, toggleStallingButton ; stalling
-    global stopwatchButton, stopwatchLapButton, stopwatchClearButton ; stopwatch hotkeys
+    definitions := GetDynamicHotkeyDefinitions()
 
-    HotIfWinActive("ahk_exe speed.exe") ; nfs focused
+    registeredHotkeys := Map()
+    registrationResults := []
 
-    if Trim(helpButton) != "" {
-        Hotkey(helpButton, ShowHotkeyHelp, "On")
-    } ; end help
+    HotIfWinActive("ahk_exe speed.exe")
 
-    if Trim(resetButton) != "" { ; registers reset hotkey if configured
-        Hotkey(resetButton, (*) => ResetInputs(), "On") ; binds configured key to reset function
-    } ; end reset
+    try {
+        for definition in definitions {
+            TryRegisterHotkey(definition, registeredHotkeys, registrationResults)
+        }
+    } finally {
+        HotIfWinActive()
+    }
 
-    if Trim(pauseButton) != "" {
-        Hotkey(pauseButton, (*) => ToggleScriptPause(), "On")
-    } ; end pause
-
-    if Trim(reloadButton) != "" {
-        Hotkey(reloadButton, (*) => Reload(), "On")
-    } ; end reload
-
-    if Trim(toggleTransmissionButton) != "" {
-        Hotkey(toggleTransmissionButton, (*) => ToggleTransmissionMode(), "On")
-    } ; end transmission
-
-    if Trim(toggleSequentialInvertButton) != "" {
-        Hotkey(toggleSequentialInvertButton, (*) => ToggleSequentialInvert(), "On")
-    } ; end sequential invert
-
-    if Trim(toggleClutchButton) != "" {
-        Hotkey(toggleClutchButton, (*) => ToggleClutchRequired(), "On")
-    } ; end clutch
-
-    if Trim(toggleNeutralButton) != "" {
-        Hotkey(toggleNeutralButton, (*) => ToggleClutchNeutral(), "On")
-    } ; end neutral
-
-    if Trim(toggleShifterHandbrakeButton) != "" {
-        Hotkey(toggleShifterHandbrakeButton, (*) => ToggleShifterHandbrake(), "On")
-    } ; end shifter handbrake
-
-    if Trim(toggleShifterHandbrakeInvertButton) != "" {
-        Hotkey(toggleShifterHandbrakeInvertButton, (*) => ToggleShifterHandbrakeInvert(), "On")
-    } ; end shifter handbrake invert
-
-    if Trim(toggleFiveGearModeButton) != "" {
-        Hotkey(toggleFiveGearModeButton, (*) => ToggleFiveGearMode(), "On")
-    } ; end 5-speed
-
-    if Trim(ignitionButton) != "" {
-        Hotkey(ignitionButton, HandleIgnitionButton, "On")
-    } ; end ignition hotkey
-
-    if Trim(toggleStallingButton) != "" {
-        Hotkey(toggleStallingButton, ToggleStalling, "On")
-    } ; end stalling toggle
-
-    if Trim(stopwatchButton) != "" {
-        Hotkey(stopwatchButton, ToggleStopwatch, "On")
-    } ; end stopwatch start/pause/resume
-
-    if Trim(stopwatchLapButton) != "" {
-        Hotkey(stopwatchLapButton, LapStopwatch, "On")
-    } ; end stopwatch lap
-
-    if Trim(stopwatchClearButton) != "" {
-        Hotkey(stopwatchClearButton, ClearStopwatch, "On")
-    } ; end stopwatch clear
-
-    HotIfWinActive() ; clears dynamic hotkey context so later hotkeys are not accidentally scoped
+    return registrationResults
 } ; end registerdynamichotkeys
 
-; =============================================================================
+; ==========================================================================================================================================================
 ; ShowHotkeyHelp(*)
-; -----------------------------------------------------------------------------
-; Displays the same live-mode status window used after mode changes without
-; changing any RealManual setting.
-; =============================================================================
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
+; Displays the same live-mode status window used after mode changes.
+; ==========================================================================================================================================================
 ShowHotkeyHelp(*) {
     ShowLiveModeStatus("RealManual Hotkeys")
 } ; end showhotkeyhelp
 
-; =============================================================================
-; ToggleTransmissionMode()
-; -----------------------------------------------------------------------------
-; Switches RealManual between H-pattern mode and sequential mode.
+; ==========================================================================================================================================================
+; SetTransmissionMode(useSequential)
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
+; Applies an H-pattern/sequential transmission-mode change and resets transient
+; state shared by all code paths that can change transmission mode.
 ;
-; When switching into sequential mode, the function reads the current physical
-; H-pattern shifter position and converts it into RealManual's sequential
-; virtualGear estimate.
+; Entering sequential:
+;   preserves the best-known game gear and requires the sequential lever to
+;   return to neutral before use.
 ;
-; The function also clears edge-detection states so the script does not interpret
-; an already-held shifter position as a fresh input after switching modes.
-; =============================================================================
-ToggleTransmissionMode() {
-    global enableLiveHotkeys, transmissionIsSequential, virtualGear ; live mode state and sequential gear estimate
-    global lastUpshiftPressed, lastDownshiftPressed, lastClutchPressed, clutchNeutralSent, sequentialShifterArmed ; edge states
-    global enableShifterHandbrake, shifterHandbrakeArmed, handbrakeHeld, handbrakeKey ; shifter handbrake state
+; Entering H-pattern:
+;   resets physical H-pattern position history, disables the sequential-only
+;   shifter handbrake, and re-evaluates the remaining handbrake sources.
+; ==========================================================================================================================================================
+SetTransmissionMode(useSequential) {
+    global transmissionIsSequential
+    global pendingSequentialShiftCount
+    global sequentialShifterArmed
+    global enableShifterHandbrake, shifterHandbrakeArmed
+    global lastHPatternSelectedGear
 
-    if !enableLiveHotkeys { ; blocks live toggle if disabled
+    if transmissionIsSequential = useSequential {
         return
-    } ; end enabled check
+    } ; end unchanged-mode guard
 
-    transmissionIsSequential := !transmissionIsSequential ; flips transmission mode
+    transmissionIsSequential := useSequential
 
-    if transmissionIsSequential { ; mode changed to sequential
-        selectedGear := ReadSelectedGear() ; reads current h-pattern shifter position
+    ; Clear mode-specific transient state
+    pendingSequentialShiftCount := 0
 
-        if selectedGear > 0 { ; checks whether a physical gear is selected
-            virtualGear := selectedGear ; initializes sequential estimate from selected h-pattern gear
-        } else { ; physical shifter is neutral
-            virtualGear := 0 ; initializes sequential estimate as neutral
-        } ; end selected gear conversion
+    ClearTransmissionInputState()
+    ClearSequentialBrakeResetState()
+    ClearStallDetectionState()
 
-        sequentialShifterArmed := false ; requires shifter to return to neutral before first sequential shift
-    } else { ; mode was changed into h-pattern
-        sequentialShifterArmed := true ; re-arms sequential shifter state for the next sequential session
-        enableShifterHandbrake := false ; disables shifter handbrake because h-pattern needs the shifter for gears
-        shifterHandbrakeArmed := true ; resets shifter handbrake arming state
+    if transmissionIsSequential {
+        ; An already-selected sequential slot must not count as a new shift.
+        sequentialShifterArmed := false
+    } else {
+        lastHPatternSelectedGear := -2
+        sequentialShifterArmed := true
 
-        if handbrakeHeld { ; releases handbrake if it was held by shifter handbrake
-            SendEvent "{" handbrakeKey " up}"
-            handbrakeHeld := false ; clears handbrake held state
-        } ; end handbrake release
-    } ; end sequential initialization
+        ; Shifter handbrake cannot coexist with H-pattern gear selection.
+        enableShifterHandbrake := false
+        shifterHandbrakeArmed := true
 
-    lastUpshiftPressed := false ; clears sequential upshift edge state
-    lastDownshiftPressed := false ; clears sequential downshift edge state
-    lastClutchPressed := false ; clears clutch transition state
-    clutchNeutralSent := false ; clears clutch-neutral state
+        HandleHandbrake()
+    } ; end target-mode initialization
 
-    ShowLiveModeStatus("Changed: Transmission Mode") ; shows updated mode status
+} ; end settransmissionmode
+
+; ==========================================================================================================================================================
+; ToggleTransmissionMode()
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
+; Switches RealManual between H-pattern and sequential transmission modes.
+;
+; The actual mode transition and transient-state synchronization are handled by
+; SetTransmissionMode() so every transmission-mode change follows the same path.
+; ==========================================================================================================================================================
+ToggleTransmissionMode() {
+    global transmissionIsSequential
+
+    SetTransmissionMode(!transmissionIsSequential)
+
+    ShowLiveModeStatus("Changed: Transmission Mode")
 } ; end toggletransmissionmode
 
-; =============================================================================
+; ==========================================================================================================================================================
 ; ToggleClutchRequired()
-; -----------------------------------------------------------------------------
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
 ; Enables or disables the clutch gate.
-;
-; Enabled:
-;   gear changes require clutch input
-;
-; Disabled:
-;   they do not
 ;
 ; The function clears clutch transition state to prevent a stale clutch press from
 ; triggering an unintended gear engagement after toggling.
-; =============================================================================
+; ==========================================================================================================================================================
 ToggleClutchRequired() {
-    global enableLiveHotkeys, requireClutch, lastClutchPressed, clutchNeutralSent ; clutch mode state
-
-    if !enableLiveHotkeys {
-        return
-    } ; end enabled check
+    global requireClutch
+    global pendingSequentialShiftCount
 
     requireClutch := !requireClutch ; flips clutch requirement
-    lastClutchPressed := false ; clears clutch transition state
-    clutchNeutralSent := false ; clears clutch-neutral state
+    pendingSequentialShiftCount := 0
+
+    ClearClutchTransactionState()
+    ClearStallDetectionState()
+
     ShowLiveModeStatus("Changed: Clutch Required")
 } ; end toggleclutchrequired
 
-; =============================================================================
+; ==========================================================================================================================================================
 ; ToggleClutchNeutral()
-; -----------------------------------------------------------------------------
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
 ; Enables or disables clutch-to-neutral behavior.
 ;
 ; Enabled:
@@ -1509,131 +4093,161 @@ ToggleClutchRequired() {
 ;
 ; Disabled:
 ;   clutch can still be required, but it does not force neutral.
-; =============================================================================
+; ==========================================================================================================================================================
 ToggleClutchNeutral() {
-    global enableLiveHotkeys, clutchActsAsNeutral, lastClutchPressed, clutchNeutralSent ; clutch-neutral state
+    global clutchActsAsNeutral
+    global pendingSequentialShiftCount
 
-    if !enableLiveHotkeys {
-        return
-    } ; end enabled check
+    clutchActsAsNeutral := !clutchActsAsNeutral
+    pendingSequentialShiftCount := 0
 
-    clutchActsAsNeutral := !clutchActsAsNeutral ; flip clutch-neutral behavior
-    lastClutchPressed := false
-    clutchNeutralSent := false
+    ClearClutchTransactionState()
+    ClearStallDetectionState()
+
     ShowLiveModeStatus("Changed: Clutch -> Neutral")
 } ; end toggleclutchneutral
 
-; =============================================================================
-; ToggleFiveGearMode()
-; -----------------------------------------------------------------------------
-; Toggles the current car gearbox limit between 5-speed and 6-speed mode.
+; ==========================================================================================================================================================
+; ToggleMaxForwardGear(*)
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
+; Toggles the maximum selectable forward gear between five and six.
+; 6th gear is invalid in cars with 5 gears, produces neutral this function keeps 5th gear when 6th is selected in 5 gear mode.
 ;
-; Affects sequential virtualGear clamping and direct gear re-engagement when
-; clutch-to-neutral is enabled.
-; =============================================================================
-ToggleFiveGearMode(*) {
-    global maxForwardGear, virtualGear ; gearbox limit and tracked gear
+; Expanding to six gears only raises the allowed limit.
+;
+; Reducing to five gears:
+;   clamps the tracked game gear to fifth
+;   cancels queued sequential shifts created under the old gearbox limit
+;   forces the game from sixth to fifth when necessary
+;
+; If clutch-to-neutral is active and the clutch is currently pressed, the game
+; remains in neutral and the clamped gear is re-engaged normally on release.
+; ==========================================================================================================================================================
+ToggleMaxForwardGear(*) {
+    global maxForwardGear
+    global virtualGear
+    global pendingSequentialShiftCount
+    global clutchActsAsNeutral
+    global engineStalled
+    global statsLastGear
 
-    maxForwardGear := maxForwardGear = 5 ? 6 : 5 ; toggles maximum forward gear
+    previousMaxGear := maxForwardGear
+    previousVirtualGear := virtualGear
 
-    if virtualGear > maxForwardGear { ; checks whether tracked gear exceeds new gearbox limit
-        virtualGear := maxForwardGear ; clamps tracked gear to current gearbox limit
-    } ; end virtual gear clamp
+    maxForwardGear := maxForwardGear = 5 ? 6 : 5
+
+    if maxForwardGear > previousMaxGear {
+        ShowLiveModeStatus("Changed: Gearbox Limit")
+        return
+    } ; end expanded gearbox branch
+
+    ; Clamp Internal Gear State
+    virtualGear := Min(virtualGear, maxForwardGear)
+
+    ; A queued sequential shift transaction was created under the previous gearbox limit and may now target a gear that no longer exists.
+    pendingSequentialShiftCount := 0
+
+    ; virtualGear is the best-known current game gear in both transmission modes, including temporary H-pattern/paddle disagreement.
+    correctionRequired := previousVirtualGear > maxForwardGear
+
+    if correctionRequired {
+        ; Gearbox-limit correction is a system state change, not a shift.
+        statsLastGear := virtualGear
+    }
+
+    ; Synchronize game gear
+    if correctionRequired && !engineStalled {
+        ; Clutch-to-neutral deliberately keeps the game in neutral while the clutch is pressed. 
+        ; The already-clamped virtual gear will be re-engaged normally when the clutch is released.
+        if !(clutchActsAsNeutral && IsClutchPressed(ReadClutchAxis())) {
+            SendGearToMod(maxForwardGear, true)
+        } ; end clutch-neutral preservation
+    } ; end game correction branch
 
     ShowLiveModeStatus("Changed: Gearbox Limit")
-} ; end togglefivegearmode
+} ; end togglemaxforwardgear
 
-; =============================================================================
-; ToggleSequentialInvert()
-; -----------------------------------------------------------------------------
-; Swaps the sequential upshift/downshift slots.
+; ==========================================================================================================================================================
+; ToggleSequentialShifterInvert()
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
+; Reverses the physical sequential-shifter upshift/downshift directions.
 ;
-; Convenience setting to change mapping without quitting the game
-; =============================================================================
-ToggleSequentialInvert() {
-    global enableLiveHotkeys, invertSequentialAxis, lastUpshiftPressed, lastDownshiftPressed ; sequential inversion state
+; After changing the mapping, the sequential shifter is disarmed until it returns to neutral. 
+; This prevents an already-selected slot from being interpreted as a new shift under the inverted mapping.
+; ==========================================================================================================================================================
+ToggleSequentialShifterInvert() {
+    global invertSequentialShifter
+    global lastUpshiftPressed, lastDownshiftPressed
+    global sequentialShifterArmed
 
-    if !enableLiveHotkeys {
-        return
-    } ; end enabled check
+    invertSequentialShifter := !invertSequentialShifter
 
-    invertSequentialAxis := !invertSequentialAxis
-    lastUpshiftPressed := false ; clears upshift edge state
-    lastDownshiftPressed := false ; clears downshift edge state
-    ShowLiveModeStatus("Changed: Sequential Invert")
-} ; end togglesequentialinvert
+    RefreshActiveSequentialBindings()
 
-; =============================================================================
+    lastUpshiftPressed := false
+    lastDownshiftPressed := false
+
+    sequentialShifterArmed := false
+
+    ShowLiveModeStatus("Changed: Sequential Shifter Invert")
+} ; end togglesequentialshifterinvert
+
+; ==========================================================================================================================================================
 ; ToggleShifterHandbrake()
-; -----------------------------------------------------------------------------
-; Toggles shifter-handbrake mode.
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
+; Toggles use of a configured H-shifter slot as the handbrake.
 ;
-; If enabled while RealManual is not already in sequential mode, this
-; automatically switches RealManual to sequential mode because shifter handbrake
-; is only valid there.
-; =============================================================================
+; Shifter-handbrake mode is valid only in sequential transmission mode.
+; Enabling it from H-pattern mode performs a normal synchronized
+; transmission-mode transition before activating the feature.
+;
+; The shifter must return to neutral after enabling before the handbrake slot
+; becomes armed.
+; ==========================================================================================================================================================
 ToggleShifterHandbrake(*) {
-    global enableShifterHandbrake, transmissionIsSequential ; feature and transmission mode
-    global shifterHandbrakeArmed, handbrakeHeld, handbrakeKey ; arming and handbrake output state
-    global lastUpshiftPressed, lastDownshiftPressed, clutchNeutralSent, lastClutchPressed ; sequential state
+    global enableShifterHandbrake
+    global transmissionIsSequential
+    global shifterHandbrakeArmed
+    global sequentialShifterArmed
 
-    enableShifterHandbrake := !enableShifterHandbrake
-
-    if enableShifterHandbrake {
+    if !enableShifterHandbrake {
         if !transmissionIsSequential {
-            transmissionIsSequential := true
-        } ; end sequential force check
+            SetTransmissionMode(true)
+        } ; end sequential-mode requirement
 
-        shifterHandbrakeArmed := false ; require shifter to return to neutral before handbrake can engage
-        lastUpshiftPressed := false ; clears sequential upshift edge state
-        lastDownshiftPressed := false ; clears sequential downshift edge state
-        clutchNeutralSent := false ; clears clutch-neutral state
-        lastClutchPressed := false ; clears clutch transition state
-    } else { ; shifter handbrake was disabled
-        shifterHandbrakeArmed := true ; reset arming state
+        enableShifterHandbrake := true
 
-        if handbrakeHeld { ; releases handbrake if currently held by shifter handbrake
-            SendEvent "{" handbrakeKey " up}"
-            handbrakeHeld := false
-        } ; end handbrake release
-    } ; end feature toggle branch
+        ; Prevents an already-selected handbrake slot from activating immediately when the feature is enabled.
+        shifterHandbrakeArmed := false
+
+    ; Disable shifter handbrake
+    } else {
+        enableShifterHandbrake := false
+        shifterHandbrakeArmed := true
+
+        ; The lever may still physically occupy the slot that was just being used as the handbrake. 
+        ; Require neutral before sequential shifting becomes active again.
+        sequentialShifterArmed := false
+
+        HandleHandbrake()
+    } ; end feature-state branch
 
     ShowLiveModeStatus("Changed: Shifter Handbrake")
 } ; end toggleshifterhandbrake
 
-; =============================================================================
-; ToggleShifterHandbrakeInvert()
-; -----------------------------------------------------------------------------
-; Toggles which shifter slot acts as the handbrake.
-;
-; Independent from sequential shift inversion.
-; =============================================================================
-ToggleShifterHandbrakeInvert(*) {
-    global invertShifterHandbrake ; handbrake inversion state
-
-    invertShifterHandbrake := !invertShifterHandbrake
-
-    ShowLiveModeStatus("Changed: Shifter Handbrake Invert")
-} ; end toggleshifterhandbrakeinvert
-
-; =============================================================================
+; ==========================================================================================================================================================
 ; ToggleStalling()
-; -----------------------------------------------------------------------------
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
 ; Disabling the feature while stalled acts as an emergency unlock. 
 ; Does not perform the ignition animation.
-; -----------------------------------------------------------------------------
+; ==========================================================================================================================================================
 ToggleStalling(*) {
-    global enableLiveHotkeys, enableStalling
-    global engineStalled, stallDetectionArmed
-    global lastStallNeutralSendTime, noInputStallStartTime
-
-    if !enableLiveHotkeys {
-        return
-    } ; end live toggle gate
+    global enableStalling
+    global engineStalled
+    global lastStallNeutralSendTime
 
     enableStalling := !enableStalling
-    stallDetectionArmed := false
-    noInputStallStartTime := 0
+    ClearStallDetectionState()
 
     if !enableStalling && engineStalled {
         engineStalled := false
@@ -1644,223 +4258,570 @@ ToggleStalling(*) {
     ShowLiveModeStatus("Changed: Stalling")
 } ; end togglestalling
 
-; =============================================================================
+; ==========================================================================================================================================================
 ; ToggleScriptPause(*)
-; -----------------------------------------------------------------------------
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
 ; Pauses or resumes RealManual input handling.
 ;
 ; When paused:
-;   MainLoop returns immediately
-;   held reverse/handbrake keys are released for safety
-;   tray menu text changes to Resume
+;   any active video-settings sequence is cancelled
+;   held gameplay outputs are released
+;   edge-triggered inputs are disarmed
+;   stall and sequential brake-hold timing state is cleared
+;   the MainLoop timer is stopped
+;   the tray menu changes to Resume RealManual
 ;
-; Does not suspend the AutoHotkey process; only disables RealManual's
-; controller-to-keyboard logic.
-; =============================================================================
+; The AutoHotkey process itself remains active so tray controls and registered
+; hotkeys can continue operating.
+; ==========================================================================================================================================================
 ToggleScriptPause(*) {
-    global scriptPaused, reverseHeld, reverseKey, handbrakeHeld, handbrakeKey ; pause and held-key state
+    global scriptPaused
+    global videoSettingsSequenceActive
 
     scriptPaused := !scriptPaused
 
     if scriptPaused {
-        if reverseHeld { ; releases reverse if currently held
-            SendEvent "{" reverseKey " up}"
-            reverseHeld := false
-        } ; end reverse release
 
-        if handbrakeHeld { ; releases handbrake if currently held
-            SendEvent "{" handbrakeKey " up}"
-            handbrakeHeld := false
-        } ; end handbrake release
+        if videoSettingsSequenceActive {
+            StopMaxVideoSettingsSequence()
+        } ; end active menu-sequence cancellation
+
+        ReleaseHeldOutputsQuietly()
+        DisarmEdgeInputs()
+        ClearStallDetectionState()
+        ClearSequentialBrakeHoldTimer()
 
         A_TrayMenu.Rename("Pause RealManual", "Resume RealManual")
         ShowToolTipMessage("RealManual paused")
-    } else { ; script resumed
+    } else {
         A_TrayMenu.Rename("Resume RealManual", "Pause RealManual")
         ShowToolTipMessage("RealManual running")
     } ; end pause state branch
+
+    UpdateMainLoopSchedule()
 } ; end togglescriptpause
 
 
-; =============================================================================
-; SECTION 15: AUXILIARY INPUT HANDLERS
-; =============================================================================
+; ==========================================================================================================================================================
+; SECTION 18: NFSMW MENU AUTOMATION
+; ==========================================================================================================================================================
 
-; =============================================================================
+; ==========================================================================================================================================================
+; TapMenuKey(keyName)
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
+; Sends one controlled key press specifically for NFSMW menu navigation.
+;
+; The hold is long enough to span NFSMW's input polling reliably, but short
+; enough to avoid triggering normal menu key-repeat behavior.
+;
+; Returns:
+;   true  = key press completed successfully
+;   false = key could not be sent
+; ==========================================================================================================================================================
+TapMenuKey(keyName) {
+    menuKeyHoldMs := 10
+
+    if Trim(keyName) = "" {
+        return false
+    } ; end blank-key guard
+
+    try {
+        SendEvent "{" keyName " down}"
+        Sleep menuKeyHoldMs
+        SendEvent "{" keyName " up}"
+
+        return true
+    } catch {
+        ; Best-effort release if the press began before an output failure.
+        try {
+            SendEvent "{" keyName " up}"
+        }
+
+        return false
+    } ; end protected menu-key send
+} ; end tapmenukey
+
+; ==========================================================================================================================================================
+; AddMenuSequenceSteps(sequence, keyName, repeatCount, delayAfterMs)
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
+; Appends one or more individual menu-navigation steps to a sequence.
+;
+; Each key press becomes its own independently scheduled step so the sequence can be cancelled between any two inputs.
+; ==========================================================================================================================================================
+AddMenuSequenceSteps(sequence, keyName, repeatCount, delayAfterMs) {
+    Loop repeatCount {
+        sequence.Push({
+            key: keyName,
+            delayAfterMs: delayAfterMs
+        })
+    }
+} ; end addmenusequencesteps
+
+; ==========================================================================================================================================================
+; BuildMaxVideoSettingsSequence()
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
+; Builds the complete NFSMW main-menu -> maximum-video-settings -> main-menu
+; navigation sequence.
+;
+; Ordinary directional inputs use a short separation delay.
+; Enter / screen-change operations receive a longer transition delay so the
+; next input cannot arrive while NFSMW is still opening another menu.
+; ==========================================================================================================================================================
+BuildMaxVideoSettingsSequence() {
+    sequence := []
+
+    menuStepDelayMs := 40
+    menuTransitionDelayMs := 1200
+
+    ; Main Menu -> Video Settings
+    AddMenuSequenceSteps(sequence, "Right", 7, menuStepDelayMs)
+    AddMenuSequenceSteps(sequence, "Enter", 1, menuTransitionDelayMs)
+    AddMenuSequenceSteps(sequence, "Right", 1, menuStepDelayMs)
+    AddMenuSequenceSteps(sequence, "Enter", 1, menuTransitionDelayMs)
+    AddMenuSequenceSteps(sequence, "Right", 4, menuStepDelayMs)
+    AddMenuSequenceSteps(sequence, "Enter", 1, menuTransitionDelayMs)
+    AddMenuSequenceSteps(sequence, "Left", 1, menuStepDelayMs)
+    AddMenuSequenceSteps(sequence, "Enter", 1, menuTransitionDelayMs)
+    AddMenuSequenceSteps(sequence, "Enter", 1, menuTransitionDelayMs)
+    AddMenuSequenceSteps(sequence, "2", 1, menuTransitionDelayMs)
+
+    ; Maximum Video Settings
+    AddMenuSequenceSteps(sequence, "Down", 1, menuStepDelayMs)
+    AddMenuSequenceSteps(sequence, "Right", 3, menuStepDelayMs)
+    AddMenuSequenceSteps(sequence, "Down", 1, menuStepDelayMs)
+    AddMenuSequenceSteps(sequence, "Right", 2, menuStepDelayMs)
+    AddMenuSequenceSteps(sequence, "Down", 1, menuStepDelayMs)
+    AddMenuSequenceSteps(sequence, "Right", 1, menuStepDelayMs)
+    AddMenuSequenceSteps(sequence, "Down", 1, menuStepDelayMs)
+    AddMenuSequenceSteps(sequence, "Right", 3, menuStepDelayMs)
+    AddMenuSequenceSteps(sequence, "Down", 1, menuStepDelayMs)
+    AddMenuSequenceSteps(sequence, "Right", 3, menuStepDelayMs)
+    AddMenuSequenceSteps(sequence, "Down", 1, menuStepDelayMs)
+    AddMenuSequenceSteps(sequence, "Right", 2, menuStepDelayMs)
+    AddMenuSequenceSteps(sequence, "Down", 3, menuStepDelayMs)
+    AddMenuSequenceSteps(sequence, "Right", 3, menuStepDelayMs)
+
+    ; Apply / Confirm / Return to Main Menu
+    AddMenuSequenceSteps(sequence, "Enter", 1, menuTransitionDelayMs)
+    AddMenuSequenceSteps(sequence, "Left", 1, menuStepDelayMs)
+    AddMenuSequenceSteps(sequence, "Enter", 1, menuTransitionDelayMs)
+    AddMenuSequenceSteps(sequence, "Esc", 1, menuTransitionDelayMs)
+    AddMenuSequenceSteps(sequence, "Left", 7, menuStepDelayMs)
+
+    return sequence
+} ; end buildmaxvideosettingssequence
+
+; ==========================================================================================================================================================
+; StopMaxVideoSettingsSequence()
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
+; Stops the currently running maximum-video-settings sequence.
+;
+; Cancels any scheduled future step, clears transient sequence state, and re-evaluates MainLoop scheduling according to the current pause/focus state.
+; ==========================================================================================================================================================
+StopMaxVideoSettingsSequence() {
+    global videoSettingsSequenceActive
+    global videoSettingsSequence
+    global videoSettingsSequenceIndex
+
+    SetTimer(ProcessMaxVideoSettingsStep, 0)
+
+    videoSettingsSequenceActive := false
+    videoSettingsSequence := []
+    videoSettingsSequenceIndex := 0
+
+    UpdateMainLoopSchedule()
+} ; end stopmaxvideosettingssequence
+
+; ==========================================================================================================================================================
+; ProcessMaxVideoSettingsStep()
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
+; Executes one scheduled step of the maximum-video-settings menu sequence.
+;
+; Only one key press is performed per invocation. The next invocation is scheduled as a one-shot timer after the current step's configured delay.
+;
+; This keeps the macro interruptible between every input and allows the same configured hotkey to cancel the sequence immediately.
+; ==========================================================================================================================================================
+ProcessMaxVideoSettingsStep() {
+    global videoSettingsSequenceActive
+    global videoSettingsSequence
+    global videoSettingsSequenceIndex
+
+    if !videoSettingsSequenceActive {
+        return
+    } ; end active-state guard
+
+    if !IsNFSFocused() {
+        StopMaxVideoSettingsSequence()
+        return
+    } ; end game-focus guard
+
+    if videoSettingsSequenceIndex < 1
+        || videoSettingsSequenceIndex > videoSettingsSequence.Length {
+
+        StopMaxVideoSettingsSequence()
+        return
+    } ; end sequence bounds guard
+
+    currentStep := videoSettingsSequence[videoSettingsSequenceIndex]
+
+    if !TapMenuKey(currentStep.key) {
+        StopMaxVideoSettingsSequence()
+        return
+    } ; end failed menu-input guard
+
+    if !videoSettingsSequenceActive {
+        return
+    } ; end cancellation guard
+
+    videoSettingsSequenceIndex++
+
+    if videoSettingsSequenceIndex > videoSettingsSequence.Length {
+        StopMaxVideoSettingsSequence()
+        return
+    } ; end completion branch
+
+    SetTimer(ProcessMaxVideoSettingsStep, -currentStep.delayAfterMs)
+} ; end processmaxvideosettingsstep
+
+; ==========================================================================================================================================================
+; ApplyMaxVideoSettings(*)
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
+; Starts or cancels NFSMW's maximum-video-settings menu sequence.
+; ==========================================================================================================================================================
+ApplyMaxVideoSettings(*) {
+    global videoSettingsSequenceActive
+    global videoSettingsSequence
+    global videoSettingsSequenceIndex
+
+    if videoSettingsSequenceActive {
+        StopMaxVideoSettingsSequence()
+        return
+    } ; end cancellation branch
+
+    if !IsNFSFocused() {
+        return
+    } ; end game-focus guard
+
+    ReleaseHeldOutputsQuietly()
+
+    videoSettingsSequence := BuildMaxVideoSettingsSequence()
+
+    videoSettingsSequenceIndex := 1
+    videoSettingsSequenceActive := true
+
+    DisarmEdgeInputs()
+    ClearStallDetectionState()
+    ClearSequentialBrakeHoldTimer()
+
+    UpdateMainLoopSchedule()
+
+    SetTimer(ProcessMaxVideoSettingsStep, -200)
+} ; end applymaxvideosettings
+
+
+; ==========================================================================================================================================================
+; SECTION 19: AUXILIARY INPUT / SYNC HANDLERS
+; ==========================================================================================================================================================
+
+; ==========================================================================================================================================================
+; HandlePaddleSync()
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
+; This function does not send any shift key.
+; The game already receives the paddle input directly.
+;
+; Updates RealManual's best-known game gear when the game's native paddle
+; shifters are used.
+;
+; Paddle synchronization is active in both H-pattern and sequential modes.
+; The game receives the paddle input directly; RealManual only mirrors the
+; resulting gear change into virtualGear.
+; ==========================================================================================================================================================
+HandlePaddleSync() {
+    global virtualGear
+    global maxForwardGear
+    global paddleUpshiftButton, paddleDownshiftButton
+    global lastPaddleUpshiftPressed, lastPaddleDownshiftPressed
+    global paddleSyncArmed
+
+    upshiftReadable := TryGetInputState(paddleUpshiftButton, &paddleUpshiftPressed)
+    downshiftReadable := TryGetInputState(paddleDownshiftButton, &paddleDownshiftPressed)
+
+    if !upshiftReadable || !downshiftReadable {
+        paddleSyncArmed := false
+        lastPaddleUpshiftPressed := false
+        lastPaddleDownshiftPressed := false
+        return
+    } ; end unreadable paddle guard
+
+    if !paddleSyncArmed {
+        if !paddleUpshiftPressed && !paddleDownshiftPressed {
+            paddleSyncArmed := true
+            lastPaddleUpshiftPressed := false
+            lastPaddleDownshiftPressed := false
+        }
+
+        return
+    } ; end paddle re-arm gate
+
+    if paddleUpshiftPressed && !lastPaddleUpshiftPressed {
+        previousGear := virtualGear
+        virtualGear := Min(virtualGear + 1, maxForwardGear)
+
+        if virtualGear != previousGear {
+            RecordShift(virtualGear)
+        }
+    } ; end paddle upshift edge
+
+    if paddleDownshiftPressed && !lastPaddleDownshiftPressed {
+        previousGear := virtualGear
+        virtualGear := Max(virtualGear - 1, 0)
+
+        if virtualGear != previousGear {
+            RecordShift(virtualGear)
+        }
+    } ; end paddle downshift edge
+
+    lastPaddleUpshiftPressed := paddleUpshiftPressed
+    lastPaddleDownshiftPressed := paddleDownshiftPressed
+} ; end handlepaddlesync
+
+; ==========================================================================================================================================================
+; HandleKeyboardShiftSync()
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
+; Mirrors physical use of NFSMW's configured keyboard upshift/downshift keys into RealManual's tracked virtualGear.
+;
+; This function doesn't send any shift command. The physical keyboard input is already received directly by NFSMW.
+;
+; Physical-state reads are required so RealManual does not mistake its own synthetic shiftUpKey / shiftDownKey output for driver keyboard input.
+; ==========================================================================================================================================================
+HandleKeyboardShiftSync() {
+    global virtualGear
+    global maxForwardGear
+    global shiftUpKey, shiftDownKey
+
+    global keyboardShiftSyncArmed
+    global lastKeyboardUpshiftPressed, lastKeyboardDownshiftPressed
+
+    upshiftReadable := TryGetPhysicalKeyState(shiftUpKey, &keyboardUpshiftPressed)
+
+    downshiftReadable := TryGetPhysicalKeyState(shiftDownKey, &keyboardDownshiftPressed)
+
+    if !upshiftReadable || !downshiftReadable {
+        keyboardShiftSyncArmed := false
+        lastKeyboardUpshiftPressed := false
+        lastKeyboardDownshiftPressed := false
+
+        return
+    } ; end unreadable keyboard-shift guard
+
+    if !keyboardShiftSyncArmed {
+        if !keyboardUpshiftPressed && !keyboardDownshiftPressed {
+            keyboardShiftSyncArmed := true
+            lastKeyboardUpshiftPressed := false
+            lastKeyboardDownshiftPressed := false
+        }
+
+        return
+    } ; end keyboard-shift re-arm gate
+
+    if keyboardUpshiftPressed && !lastKeyboardUpshiftPressed {
+        previousGear := virtualGear
+        virtualGear := Min(virtualGear + 1, maxForwardGear)
+
+        if virtualGear != previousGear {
+            RecordShift(virtualGear)
+        }
+    } ; end physical keyboard upshift
+
+    if keyboardDownshiftPressed && !lastKeyboardDownshiftPressed {
+        previousGear := virtualGear
+        virtualGear := Max(virtualGear - 1, 0)
+
+        if virtualGear != previousGear {
+            RecordShift(virtualGear)
+        }
+    } ; end physical keyboard downshift
+
+    lastKeyboardUpshiftPressed := keyboardUpshiftPressed
+    lastKeyboardDownshiftPressed := keyboardDownshiftPressed
+} ; end handlekeyboardshiftsync
+
+; ==========================================================================================================================================================
 ; HandleHandbrake()
-; -----------------------------------------------------------------------------
-; Converts an analog USB handbrake axis into a digital game handbrake key.
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
+; Combines all active handbrake sources into the game's digital handbrake key.
 ;
-; Axis model:
-;   released = low value
-;   pulled   = high value
+; Handbrake sources:
+;   analog handbrake axis
+;   optional shifter handbrake
+;   forced handbrake while the simulated engine is stalled/off
 ;
-; Holds handbrakeKey if handbrakeAxisValue > handbrakeThreshold
-; =============================================================================
+; An unconfigured or unavailable analog handbrake safely reports inactive.
+; ==========================================================================================================================================================
 HandleHandbrake() {
-    global enableHandbrake, engineStalled
+    global engineStalled
     global handbrakeKey, handbrakeHeld
 
-    handbrakeRequested := engineStalled ; a stalled engine always requests the handbrake
-
-    if enableHandbrake {
-        handbrakeRequested := handbrakeRequested
-            || IsAnalogHandbrakeActive()
-            || IsShifterHandbrakeActive()
-    } ; end normal handbrake source branch
+    handbrakeRequested := engineStalled
+        || IsAnalogHandbrakeActive()
+        || IsShifterHandbrakeActive()
 
     if handbrakeRequested {
         if !handbrakeHeld {
-            SendEvent "{" handbrakeKey " down}"
-            handbrakeHeld := true
+            if TrySetOutputKeyState(handbrakeKey, true) {
+                handbrakeHeld := true
+            }
         } ; end press guard
     } else {
         if handbrakeHeld {
-            SendEvent "{" handbrakeKey " up}"
-            handbrakeHeld := false
+            if TrySetOutputKeyState(handbrakeKey, false) {
+                handbrakeHeld := false
+            }
         } ; end release guard
-    } ; end requested state branch
+    } ; end requested-state branch
 } ; end handlehandbrake
 
-; =============================================================================
-; HandleReverse()
-; -----------------------------------------------------------------------------
-; Handles the physical reverse gear slot for H-pattern mode only.
+; ==========================================================================================================================================================
+; HandleReverseAssist(clutchPressed, combinedPedalValue, selectedGear := -2)
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
+; Adds a digital NFSMW reverse-key hold on top of RealManual's normal reverse
+; behavior.
 ;
-;   Reverse gear + brake pedal past threshold = hold brake/reverse key
+; Reverse assist uses separate engagement and release conditions:
 ;
-; For full sim purposes. You can always just brake to reverse. Gas/Brake shared
-; pedal axis, so can't use Gas to reverse. 
-; =============================================================================
-HandleReverse() {
-    global enableReverse, reverseButton, reverseKey, reverseHeld, lastSentGear ; reverse state
-    global transmissionIsSequential ; transmission mode
-
-    if transmissionIsSequential { ; sequential mode does not use physical reverse slot
-        return false
-    } ; end sequential bypass
-
-    if !enableReverse {
-        if reverseHeld {
-            SendEvent "{" reverseKey " up}"
-            reverseHeld := false
-        } ; end release guard
-
-        return false ; reverse inactive
-    } ; end feature toggle check
-
-    if SafeGetKeyState(reverseButton, false) { ; checks whether physical reverse slot is selected
-        lastSentGear := -1 ; marks reverse slot state without sending neutral
-
-        if IsBrakePressedForSequentialReset() { ; only activates brake/reverse key when brake pedal is pressed
-            if !reverseHeld {
-                SendEvent "{" reverseKey " down}"
-                reverseHeld := true
-            } ; end press guard
-        } else { ; reverse slot selected but brake pedal not pressed
-            if reverseHeld {
-                SendEvent "{" reverseKey " up}"
-                reverseHeld := false
-            } ; end release guard
-        } ; end brake gate branch
-
-        return true ; blocks h-pattern logic so reverse slot does not get treated as neutral
-    } ; end reverse slot branch
-
-    if reverseHeld { ; releases when leaving reverse slot
-        SendEvent "{" reverseKey " up}"
-        reverseHeld := false
-    } ; end release guard
-
-    return false ; reverse inactive
-} ; end handlereverse
-
-; =============================================================================
-; SECTION 16: STALL / ENIGNE OFF/ON SIMULATION LOGIC
-; =============================================================================
-
-; =============================================================================
-; EnterEngineOffState(playStallJerk, statusMessage)
-; -----------------------------------------------------------------------------
-; Places RealManual into its simulated engine-off state.
+;   assist inactive:
+;       brake must pass ReverseAssist.EngageBrakeThreshold before engagement
 ;
-; Both an automatic stall and a manual ignition shutoff use the same state:
-;   transmission output locked
-;   neutral forced
-;   handbrake forced
-;   tracked gear state reset to neutral
+;   assist active:
+;       remains active while the brake pedal is still considered engaged
+;       releases only when IsBrakePedalActive() reports brake release
 ;
-; playStallJerk:
-;   true  = briefly taps throttle before neutral to simulate a stall jerk
-;   false = shuts the engine off cleanly
-; =============================================================================
-EnterEngineOffState(playStallJerk, statusMessage) {
-    global engineStalled, stallDetectionArmed
-    global virtualGear, pendingGear, pendingSequentialShiftCount
-    global lastClutchPressed, clutchNeutralSent
-    global lastUpshiftPressed, lastDownshiftPressed
-    global lastPaddleUpshiftPressed, lastPaddleDownshiftPressed
-    global sequentialShifterArmed
-    global brakeHoldStartTime, brakeHoldResetTriggered
-    global lastStallNeutralSendTime, noInputStallStartTime
+; Clutch behavior:
+;   pressing the clutch always disables reverse assist
+;   NFSMW then handles brake/reverse from the analog pedal normally
+;
+; H-pattern mode:
+;   requires physical reverse selection
+;   requires a successful direct MW2005-HShifter reverse command
+;
+; Sequential mode:
+;   requires the sequential brake-hold reset to have triggered
+;   requires that reset sequence to have begun outside neutral
+;   requires the tracked gear to remain non-neutral
+; ==========================================================================================================================================================
+HandleReverseAssist(clutchPressed, combinedPedalValue, selectedGear := -2) {
+    global enableReverseAssist
+    global transmissionIsSequential
+    global reverseKey
+    global reverseAssistHeld
+    global reverseCommandLatched
+    global brakeHoldResetTriggered
+    global sequentialReverseAssistEligible
+    global virtualGear
 
-    if engineStalled {
+    if !enableReverseAssist || clutchPressed {
+        ReleaseReverseAssistQuietly()
         return
-    } ; end duplicate engine-off guard
+    } ; end feature / clutch gate
 
-    engineStalled := true
-    stallDetectionArmed := false
-    noInputStallStartTime := 0
+    if reverseAssistHeld {
+        brakeConditionMet :=
+            IsBrakePedalActive(combinedPedalValue)
+    } else {
+        brakeConditionMet := IsBrakePressedForReverseAssist(combinedPedalValue)
+    } ; end brake engagement / release state
 
-    if playStallJerk {
-        TapThrottleBlip() ; brief jerk only when the engine actually stalls
-    } ; end stall jerk
+    reverseAssistRequested := false
+    if brakeConditionMet {
+        ; Sequential Mode
+        if transmissionIsSequential {
+            reverseAssistRequested :=
+                brakeHoldResetTriggered
+                && sequentialReverseAssistEligible
+                && virtualGear != 0
 
-    SendGearToMod(0, true) ; forces neutral
+        ; H-Pattern Mode
+        } else {
+            reverseAssistRequested := selectedGear = -1 && reverseCommandLatched
+        }
+    } ; end assist eligibility
 
-    virtualGear := 0
-    pendingGear := 0
-    pendingSequentialShiftCount := 0
+    if reverseAssistRequested {
+        if !reverseAssistHeld {
+            if TrySetOutputKeyState(reverseKey, true) {
+                reverseAssistHeld := true
+            }
+        } ; end press guard
 
-    lastClutchPressed := false
-    clutchNeutralSent := false
-    lastUpshiftPressed := false
-    lastDownshiftPressed := false
-    lastPaddleUpshiftPressed := false
-    lastPaddleDownshiftPressed := false
+    } else {
 
-    sequentialShifterArmed := false
-    brakeHoldStartTime := 0
-    brakeHoldResetTriggered := false
+        ReleaseReverseAssistQuietly()
+    } ; end requested-state branch
 
-    lastStallNeutralSendTime := A_TickCount
+} ; end handlereverseassist
 
-    HandleHandbrake()
-    ShowToolTipMessage(statusMessage)
-} ; end enterengineoffstate
 
-; =============================================================================
-; StallEngine()
-; -----------------------------------------------------------------------------
-; Enters the engine-off state after a simulated first-gear stall.
-; =============================================================================
-StallEngine() {
-    EnterEngineOffState(true, "stalled")
-} ; end stallengine
+; ==========================================================================================================================================================
+; SECTION 20: STALL / ENGINE OFF/ON SIMULATION LOGIC
+; ==========================================================================================================================================================
 
-; =============================================================================
-; ShutOffEngine()
-; -----------------------------------------------------------------------------
-; Manually enters the same engine-off state as a stall, but without producing
-; the simulated forward jerk.
-; =============================================================================
-ShutOffEngine() {
-    EnterEngineOffState(false, "engine shut off")
-} ; end shutoffengine
+; ==========================================================================================================================================================
+; ShouldSuppressStallForBrakeReset()
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
+; Protects sequential-mode reversing from first-gear stall detection after the
+; brake-hold gear-reset heuristic has forced virtual gear 1.
+;
+; Protection has two phases:
+;
+;   1. Brake still held:
+;      suppress stalling indefinitely while reverse/brake input remains active.
+;
+;   2. Brake released:
+;      start BrakeResetStallGraceMs and continue suppressing stalling until the configured grace period expires.
+;
+; Returns true while stall detection should be skipped.
+; ==========================================================================================================================================================
+ShouldSuppressStallForBrakeReset(combinedPedalValue) {
+    global transmissionIsSequential
+    global enableBrakeHoldGearReset
+    global brakeResetStallGraceActive
+    global brakeResetReleaseTime
+    global brakeResetStallGraceMs
 
-; =============================================================================
-; HandleStallDetection(clutchPressed)
-; -----------------------------------------------------------------------------
+    if !brakeResetStallGraceActive {
+        return false
+    } ; end inactive guard
+
+    if !transmissionIsSequential || !enableBrakeHoldGearReset {
+        ClearBrakeResetStallGraceState()
+        return false
+    } ; end feature-state guard
+
+    if IsBrakePedalActive(combinedPedalValue) {
+        brakeResetReleaseTime := 0
+        return true
+    } ; end brake-held protection
+
+    if brakeResetReleaseTime = 0 {
+        brakeResetReleaseTime := A_TickCount
+        return true
+    } ; end release detection
+
+    graceMs := Max(0, brakeResetStallGraceMs)
+
+    if A_TickCount - brakeResetReleaseTime < graceMs {
+        return true
+    } ; end post-release grace period
+
+    brakeResetStallGraceActive := false
+    brakeResetReleaseTime := 0
+
+    return false
+} ; end shouldsuppressstallforbrakereset
+
+; ==========================================================================================================================================================
+; HandleStallDetection(clutchPressed, clutchValue, combinedPedalValue, selectedGear := -2)
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
 ; Detects two first-gear stall conditions:
 ;
 ;   1. clutch-release stall:
@@ -1872,99 +4833,93 @@ ShutOffEngine() {
 ;
 ; Stall behavior depends on the active clutch configuration:
 ;
-; RequireClutch = false, ClutchActsAsNeutral = false
-;   - clutch input is ignored completely
-;   - first gear stalls only after sustained insufficient throttle
+; RequireClutch=0, ClutchActsAsNeutral=0
+;    → NO STALLING
 ;
-; RequireClutch = true, ClutchActsAsNeutral = false
-;   - pressing the clutch prevents the first-gear stall
-;   - once the clutch is sufficiently released, sustained insufficient throttle
-;     can stall the engine
-;   - clutch required to restart the engine
+; RequireClutch=1, ClutchActsAsNeutral=0
+;    → clutch protects while pressed
+;    → sustained no-throttle stall after sufficient release
+;    → no immediate clutch-release stall
 ;
-; RequireClutch = false, ClutchActsAsNeutral = true
-;   - releasing the clutch past the configured point without enough throttle
-;     causes an immediate stall
-;   - sustained first-gear insufficient-throttle stalling also remains active
-;   - clutch not required to restart the engine
+; RequireClutch=0, ClutchActsAsNeutral=1
+;    → clutch protects while pressed
+;    → immediate bad-release stall
+;    → sustained no-throttle stall
 ;
-; RequireClutch = true, ClutchActsAsNeutral = true
-;   - full clutch simulation behavior
-;   - clutch press prevents stalling
-;   - improper clutch release can stall the engine
-;   - sustained first-gear insufficient-throttle stalling remains active
-;   - clutch required to restart the engine
-; =============================================================================
-HandleStallDetection(clutchPressed) {
+; RequireClutch=1, ClutchActsAsNeutral=1
+;    → same full stall behavior
+;    → clutch also required for restart
+; ==========================================================================================================================================================
+HandleStallDetection(clutchPressed, clutchValue, combinedPedalValue, selectedGear := -2) {
     global enableStalling, engineStalled, stallDetectionArmed
     global requireClutch, clutchActsAsNeutral
-    global stallClutchReleaseThreshold, stallThrottleThreshold
+    global clutchReleaseThreshold, throttleThreshold
     global noInputStallDelayMs, noInputStallStartTime
+    global stallSuppressedUntilShift
 
     if !enableStalling {
-        stallDetectionArmed := false
-        noInputStallStartTime := 0
+        ClearStallDetectionState()
         return
     } ; end feature gate
 
     if engineStalled {
-        stallDetectionArmed := false
-        noInputStallStartTime := 0
+        ClearStallDetectionState()
         return
     } ; end stalled guard
 
-    if ShouldSuppressStallForBrakeReset() {
-        stallDetectionArmed := false
-        noInputStallStartTime := 0
+    if stallSuppressedUntilShift {
+        ClearStallDetectionState()
+        return
+    } ; end new-game stall suppression
+
+    if ShouldSuppressStallForBrakeReset(combinedPedalValue) {
+        ClearStallDetectionState()
         return
     } ; end sequential brake-reset stall protection
 
-    if !IsFirstGearSelectedForStall() {
-        stallDetectionArmed := false
-        noInputStallStartTime := 0
+    if !IsFirstGearSelectedForStall(combinedPedalValue, selectedGear) {
+        ClearStallDetectionState()
         return
     } ; end first-gear gate
 
-    ; Any enabled clutch feature means the clutch can prevent the normal
-    ; first-gear insufficient-throttle stall while it is pressed.
+    ; Stall simulation only applies when at least one clutch-related feature participates in the transmission model.
     clutchParticipatesInStallLogic := requireClutch || clutchActsAsNeutral
+
+    if !clutchParticipatesInStallLogic {
+        ClearStallDetectionState()
+        return
+    } ; end clutch participation gate
+
 
     ; Only clutch-to-neutral enables the immediate clutch-release stall.
     clutchReleaseStallEnabled := clutchActsAsNeutral
 
+    ; Clutch Protection
     if clutchParticipatesInStallLogic {
         if clutchPressed {
-            ; Only arm an immediate clutch-release stall when clutch-to-neutral
-            ; behavior is enabled.
             stallDetectionArmed := clutchReleaseStallEnabled
-
-            ; A pressed clutch disconnects the transmission, so the normal
-            ; first-gear no-throttle stall timer cannot continue.
+            ; A pressed clutch disconnects the transmission, so the sustained first-gear no-throttle timer cannot continue.
             noInputStallStartTime := 0
+
             return
         } ; end clutch-held branch
 
-        clutchReleasePercent := ReadClutchReleasePercent()
+        clutchReleasePercent := ReadClutchReleasePercent(clutchValue)
 
-        if clutchReleasePercent < stallClutchReleaseThreshold {
-            ; Clutch is still sufficiently depressed to prevent the engine from
-            ; being treated as fully coupled to first gear.
+        if clutchReleasePercent < clutchReleaseThreshold {
+            ; The clutch is still sufficiently depressed to prevent the engine from being treated as fully coupled to first gear.
             noInputStallStartTime := 0
+
             return
         } ; end clutch release threshold guard
-    } else {
-        ; Neither clutch feature is enabled, so the clutch axis has no effect on
-        ; stall simulation.
-        stallDetectionArmed := false
-    } ; end clutch participation branch
+    }
 
-    throttlePercent := ReadThrottlePercentForStall()
+    throttlePercent := ReadThrottlePercentForStall(combinedPedalValue)
 
     if clutchReleaseStallEnabled && stallDetectionArmed {
-        stallDetectionArmed := false
-        noInputStallStartTime := 0
+        ClearStallDetectionState()
 
-        if throttlePercent < stallThrottleThreshold {
+        if throttlePercent < throttleThreshold {
             StallEngine()
         } ; end insufficient throttle branch
 
@@ -1972,13 +4927,12 @@ HandleStallDetection(clutchPressed) {
     } ; end clutch-release evaluation
 
     ; Sufficient throttle cancels the sustained first-gear stall timer.
-    if throttlePercent >= stallThrottleThreshold {
+    if throttlePercent >= throttleThreshold {
         noInputStallStartTime := 0
         return
     } ; end throttle guard
 
-    ; First gear is selected, the clutch is no longer protecting the engine,
-    ; and throttle is insufficient. Start or continue the sustained stall timer.
+    ; First gear is selected, the clutch is no longer protecting the engine, and throttle is insufficient. Start or continue the sustained stall timer.
     if noInputStallStartTime = 0 {
         noInputStallStartTime := A_TickCount
     } ; end timer start
@@ -1991,29 +4945,104 @@ HandleStallDetection(clutchPressed) {
     } ; end sustained no-input stall
 } ; end handlestalldetection
 
-; =============================================================================
+; ==========================================================================================================================================================
+; EnterEngineOffState(playStallJerk, statusMessage)
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
+; Places RealManual into its simulated engine-off state.
+;
+; Both an automatic stall and a manual ignition shutoff use the same state:
+;   transmission output locked
+;   neutral forced
+;   handbrake forced
+;   tracked gear state reset to neutral
+;
+; playStallJerk:
+;   true  = briefly taps throttle before neutral to simulate a stall jerk
+;   false = shuts the engine off cleanly
+; ==========================================================================================================================================================
+EnterEngineOffState(playStallJerk, statusMessage) {
+    global engineStalled
+    global virtualGear
+    global pendingSequentialShiftCount
+    global sequentialShifterArmed
+    global lastStallNeutralSendTime
+    global statsLastGear
+
+    if engineStalled {
+        return
+    } ; end duplicate engine-off guard
+
+    engineStalled := true
+    ClearStallDetectionState()
+    ReleaseReverseAssistQuietly()
+
+    if playStallJerk {
+        TapThrottleBlip() ; brief jerk only when the engine actually stalls
+    } ; end stall jerk
+
+    SendGearToMod(0, true) ; forces neutral
+
+    virtualGear := 0
+    statsLastGear := 0
+    pendingSequentialShiftCount := 0
+
+    ClearTransmissionInputState()
+    ClearSequentialBrakeResetState()
+
+    sequentialShifterArmed := false
+    lastStallNeutralSendTime := A_TickCount
+
+    HandleHandbrake()
+    ShowToolTipMessage(statusMessage)
+} ; end enterengineoffstate
+
+; ==========================================================================================================================================================
+; StallEngine()
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
+; Enters the engine-off state after a simulated first-gear stall and records one stall for that engine-state transition.
+; ==========================================================================================================================================================
+StallEngine() {
+    global engineStalled
+
+    if engineStalled {
+        return
+    } ; end duplicate stall guard
+
+    EnterEngineOffState(true, "stalled")
+    RecordStall()
+} ; end stallengine
+
+; ==========================================================================================================================================================
+; ShutOffEngine()
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
+; Manually enters the same engine-off state as a stall, but without producing the simulated forward jerk.
+; ==========================================================================================================================================================
+ShutOffEngine() {
+    EnterEngineOffState(false, "engine shut off")
+} ; end shutoffengine
+
+; ==========================================================================================================================================================
 ; MaintainStalledState()
-; -----------------------------------------------------------------------------
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
 ; Holds the handbrake and periodically reasserts neutral while stalled.
 ;
-; Periodic neutral prevents the game from leaving neutral after its built-in
-; brake-to-reverse and automatic first-gear behavior.
+; Periodic neutral prevents the game from leaving neutral after its built-in brake-to-reverse and automatic first-gear behavior.
 ;
 ; Returns:
 ;   true  = engine is stalled/off and normal transmission handling must stop
 ;   false = engine is running
-; =============================================================================
+; ==========================================================================================================================================================
 MaintainStalledState() {
     global engineStalled
-    global stallNeutralResendMs, lastStallNeutralSendTime
+    global neutralResendMs
+    global lastStallNeutralSendTime
 
     if !engineStalled {
         return false
     } ; end stalled-state check
 
     HandleHandbrake() ; preserves forced handbrake while stalled
-
-    resendInterval := Max(50, stallNeutralResendMs)
+    resendInterval := Max(50, neutralResendMs)
 
     if A_TickCount - lastStallNeutralSendTime >= resendInterval {
         SendGearToMod(0, true) ; force is required because lastSentGear is already zero
@@ -2023,23 +5052,20 @@ MaintainStalledState() {
     return true
 } ; end maintainstalledstate
 
-; =============================================================================
+; ==========================================================================================================================================================
 ; TryRestartEngine()
-; -----------------------------------------------------------------------------
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
 ; Restart requires:
 ;   engine currently stalled
 ;   physical shifter in neutral
 ;   clutch nearly fully pressed (if RequireClutch = true)
-; =============================================================================
+; ==========================================================================================================================================================
 TryRestartEngine(*) {
     global enableStalling, engineStalled, requireClutch
-    global virtualGear, pendingGear, pendingSequentialShiftCount
-    global stallDetectionArmed, lastStallNeutralSendTime, noInputStallStartTime
-    global lastClutchPressed, clutchNeutralSent
-    global lastUpshiftPressed, lastDownshiftPressed
-    global lastPaddleUpshiftPressed, lastPaddleDownshiftPressed
+    global virtualGear, pendingSequentialShiftCount
+    global lastStallNeutralSendTime
     global sequentialShifterArmed
-    global brakeHoldStartTime, brakeHoldResetTriggered
+    global statsLastGear
 
     if !enableStalling || !engineStalled {
         return
@@ -2050,43 +5076,35 @@ TryRestartEngine(*) {
         return
     } ; end neutral requirement
 
-    if requireClutch && !IsClutchFullyPressedForRestart() {
+    if requireClutch && !IsClutchFullyPressedForRestart(ReadClutchAxis()) {
         ShowToolTipMessage("restart blocked: press clutch fully")
         return
     } ; end optional clutch requirement
 
     SendGearToMod(0, true) ; ensures the game is in neutral before restart
     TapThrottleBlip() ; simulated engine-start rev
+    ClearStallDetectionState()
 
     engineStalled := false
-    stallDetectionArmed := false
-    lastStallNeutralSendTime := 0
-    noInputStallStartTime := 0
-
     virtualGear := 0
-    pendingGear := 0
+    statsLastGear := 0
+    lastStallNeutralSendTime := 0
     pendingSequentialShiftCount := 0
 
-    lastClutchPressed := false
-    clutchNeutralSent := false
-    lastUpshiftPressed := false
-    lastDownshiftPressed := false
-    lastPaddleUpshiftPressed := false
-    lastPaddleDownshiftPressed := false
+    ClearTransmissionInputState()
+    ClearSequentialBrakeResetState()
 
-    sequentialShifterArmed := true ; physical neutral was explicitly verified
-    brakeHoldStartTime := 0
-    brakeHoldResetTriggered := false
+    sequentialShifterArmed := true
 
     HandleHandbrake() ; removes the forced engine-off handbrake request
     ShowToolTipMessage("engine started")
 } ; end tryrestartengine
 
-; =============================================================================
+; ==========================================================================================================================================================
 ; HandleIgnitionButton(*)
-; -----------------------------------------------------------------------------
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
 ; Acts as a simulated ignition switch.
-; =============================================================================
+; ==========================================================================================================================================================
 HandleIgnitionButton(*) {
     global enableStalling, engineStalled
 
@@ -2101,165 +5119,214 @@ HandleIgnitionButton(*) {
     } ; end ignition state branch
 } ; end handleignitionbutton
 
-; =============================================================================
-; ShouldSuppressStallForBrakeReset()
-; -----------------------------------------------------------------------------
-; Protects sequential-mode reversing from first-gear stall detection after the
-; brake-hold gear-reset heuristic has forced virtual gear 1.
+
+; ==========================================================================================================================================================
+; SECTION 21: H-PATTERN TRANSMISSION LOGIC
+; ==========================================================================================================================================================
+
+; ==========================================================================================================================================================
+; HandleHPatternTransmission(clutchPressed, combinedPedalValue, selectedGear)
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
+; Handles all physical H-pattern transmission behavior, including reverse.
 ;
-; Protection has two phases:
+; selectedGear is sampled once by MainLoop and passed into this function so transmission handling and stall detection use the same physical snapshot.
 ;
-;   1. Brake still held:
-;      suppress stalling indefinitely while reverse/brake input remains active.
-;
-;   2. Brake released:
-;      start BrakeResetStallGraceMs and continue suppressing stalling until the
-;      configured grace period expires.
-;
-; Returns true while stall detection should be skipped.
-; =============================================================================
-ShouldSuppressStallForBrakeReset() {
-    global transmissionIsSequential, enableBrakeHoldGearReset
-    global brakeResetStallGraceActive, brakeResetReleaseTime
-    global brakeResetStallGraceMs
-
-    if !brakeResetStallGraceActive {
-        return false
-    } ; end inactive guard
-
-    if !transmissionIsSequential || !enableBrakeHoldGearReset {
-        brakeResetStallGraceActive := false
-        brakeResetReleaseTime := 0
-        return false
-    } ; end feature-state guard
-
-    if IsBrakePressedForSequentialReset() {
-        ; Reverse/brake is still being held. The grace countdown must not begin
-        ; yet, regardless of how long you reverse
-        brakeResetReleaseTime := 0
-        return true
-    } ; end brake-held protection
-
-    if brakeResetReleaseTime = 0 {
-        ; first scan after brake release starts the grace period
-        brakeResetReleaseTime := A_TickCount
-        return true
-    } ; end release detection
-
-    graceMs := Max(0, brakeResetStallGraceMs)
-
-    if A_TickCount - brakeResetReleaseTime < graceMs {
-        return true
-    } ; end post-release grace period
-
-    ; grace period is complete. Normal stall behavior resumes
-    brakeResetStallGraceActive := false
-    brakeResetReleaseTime := 0
-
-    return false
-} ; end shouldsuppressstallforbrakereset
-
-; =============================================================================
-; SECTION 17: H-PATTERN TRANSMISSION LOGIC
-; =============================================================================
-
-; =============================================================================
-; HandleHPatternTransmission(clutchPressed)
-; -----------------------------------------------------------------------------
-; Handles full H-pattern behavior.
-;
-; Main modes:
+; Forward gears:
 ;   no clutch required:
-;       selected physical gear is sent immediately
+;       a physical shifter-position change applies that gear immediately
 ;
 ;   clutch required:
-;       selected gear is stored while clutch is held
-;       stored gear is sent when clutch is released
+;       forward shifter movement alone does not engage the new gear clutch release forces the CURRENT physical shifter position
 ;
-;   clutch-to-neutral:
-;       clutch press sends neutral once
-;       clutch release sends the selected pending gear
+; Clutch participation:
+;   if either RequireClutch or ClutchActsAsNeutral is enabled, clutch release always makes the current physical H-shifter position authoritative.
 ;
-; Virtual gear tracking:
-;   H-pattern mode also updates virtualGear so switching from H-pattern to
-;   sequential mode starts from the best-known current gear instead of an
-;   outdated sequential estimate.
+; Clutch-to-neutral:
+;   clutch press sends neutral once
+;   clutch release forces the current physical H-shifter position
 ;
-; Neutral behavior:
-;   If no gear button is active, selectedGear = 0, which sends neutral.
-; =============================================================================
-HandleHPatternTransmission(clutchPressed) { ; processes h-pattern mode
-    global requireClutch, clutchActsAsNeutral, pendingGear, lastClutchPressed, clutchNeutralSent, virtualGear, maxForwardGear ; h-pattern state and shared gear estimate
+; Neutral:
+;   moving the physical shifter into neutral always sends neutral immediately, regardless of clutch requirement
+;
+; Reverse:
+;   physical reverse gate + active brake pedal sends MW2005-HShifter command 0 once for that brake engagement.
+;
+; Paddle synchronization:
+;   native paddle shifts may temporarily make virtualGear differ from the physical H-shifter position. 
+;   A stationary physical shifter does not overwrite that paddle-synchronized state.
+;
+; Unknown shifter state:
+;   selectedGear = -2 means the physical state could not be determined safely.
+;   No gear command or physical-position history update occurs in that case.
+; ==========================================================================================================================================================
+HandleHPatternTransmission(clutchPressed, combinedPedalValue, selectedGear) {
+    global requireClutch, clutchActsAsNeutral
+    global lastClutchPressed, clutchNeutralSent
+    global virtualGear
+    global maxForwardGear
+    global reverseCommandLatched
+    global lastHPatternSelectedGear
+    global lastSentGear
+    global statsLastGear
 
-    selectedGear := ReadSelectedGear() ; reads physical shifter position
-    selectedGear := selectedGear > maxForwardGear ? maxForwardGear : selectedGear ; clamps selected gear to current car gearbox limit
+    if selectedGear = -2 {
+        return
+    } ; end unknown shifter-state guard
 
-    if clutchActsAsNeutral { ; clutch-neutral behavior can run with or without clutch-required mode
-        if clutchPressed {
-            if selectedGear > 0 { ; only updates pending gear when a real gear is selected
-                pendingGear := selectedGear ; remembers selected gear without letting neutral overwrite it
-            } ; end pending gear update
+    if selectedGear = -1 {
+        lastHPatternSelectedGear := -1
 
-            if !clutchNeutralSent { ; sends neutral once per clutch press
-                SendGearToMod(0)
-                virtualGear := 0 ; tracks neutral while clutch is held
-                clutchNeutralSent := true
+        ; Reverse abandons any incomplete forward-gear clutch transaction.
+        ClearClutchTransactionState()
+
+        if IsBrakePedalActive(combinedPedalValue) {
+            if !reverseCommandLatched {
+                if SendGearToMod(-1, true) {
+                    RecordShift(-1)
+    
+                    reverseCommandLatched := true
+                } ; end successful reverse command
+            } ; end reverse command latch
+        } else {
+            ; After a successful direct reverse command, NFSMW returns to first when the brake is released even while the physical shifter remains in reverse.
+            ; Reconcile the tracked game state without counting that automatic return as a driver shift.
+            if lastSentGear = -1 {
+                virtualGear := 1
+                statsLastGear := 1
+            }
+            reverseCommandLatched := false
+        }
+
+        return
+    } ; end reverse gear
+
+    reverseCommandLatched := false
+
+    ; Normalize Forward Gear Limit
+    selectedGear := selectedGear > maxForwardGear ? maxForwardGear : selectedGear
+
+    ; Physical H-Pattern Movement Detection
+    previousHPatternSelectedGear := lastHPatternSelectedGear
+    physicalSelectionChanged := selectedGear != previousHPatternSelectedGear
+    lastHPatternSelectedGear := selectedGear
+
+    ; Clutch State Model
+    clutchParticipates :=
+        requireClutch || clutchActsAsNeutral
+
+    clutchReleaseEdge :=
+        clutchParticipates
+        && lastClutchPressed
+        && !clutchPressed
+
+    ; Physical Neutral
+    ; Neutral is always allowed without requiring the clutch.
+    if selectedGear = 0 {
+        ; Clutch -> Neutral
+        if clutchActsAsNeutral && clutchPressed {
+            if !clutchNeutralSent {
+                ; Force because native paddle input may have changed the game's actual gear without changing lastSentGear.
+                if SendGearToMod(0, true) {
+                    virtualGear := 0
+                    clutchNeutralSent := true
+                } ; end successful neutral command
             } ; end neutral send branch
 
             lastClutchPressed := true
-            return ; waits for clutch release
-        } ; end clutch held branch
+            return
+        } ; end clutch-neutral held branch
 
-        if lastClutchPressed { ; clutch release event
-            pendingGear := pendingGear > maxForwardGear ? maxForwardGear : pendingGear ; clamps pending gear to current car gearbox limit
-            SendGearToMod(pendingGear, true) ; forces gear re-engagement on clutch release
-            virtualGear := pendingGear ; tracks re-engaged gear for future sequential mode
-            lastClutchPressed := false ; clears clutch event
-            clutchNeutralSent := false ; allows future neutral
-            return ; end clutch-neutral release
-        } ; end clutch release branch
-    } ; end clutch-neutral branch
+        ; Clutch Release While Physical Shifter Is Neutral
+        if clutchReleaseEdge {
+            if SendGearToMod(0, true) {
+                virtualGear := 0
+                ClearClutchTransactionState()
+            } ; end successful neutral command
+            return
+        } ; end neutral clutch-release branch
 
-    if !requireClutch { ; no clutch-required mode
-        SendGearToMod(selectedGear) ; sends clamped gear immediately
-        virtualGear := selectedGear ; tracks current h-pattern gear for future sequential mode
-        return ; end h-pattern handling
-    } ; end no clutch branch
+        ; Physical Movement Into Neutral
+        if physicalSelectionChanged {
+            if SendGearToMod(0, true) {
+                virtualGear := 0
+            } else {
+                ; The neutral command did not succeed
+                lastHPatternSelectedGear := previousHPatternSelectedGear
+            }
+        } ; end physical neutral transition
 
-    if clutchPressed { ; clutch held without clutch-neutral behavior
-        if selectedGear > 0 {
-            pendingGear := selectedGear
-        } ; end pending gear update
+        ; A clutch-required configuration still needs to remember that the clutch is currently held, even though neutral itself is immediate.
+        if clutchParticipates {
+            lastClutchPressed := clutchPressed
+        }
+
+        return
+    } ; end physical neutral branch
+
+    ; Clutch -> Neutral While Forward Gear Is Selected
+    if clutchActsAsNeutral && clutchPressed {
+        if !clutchNeutralSent {
+            ; Force neutral because native paddle shifting can make the actual game gear differ from lastSentGear.
+            if SendGearToMod(0, true) {
+                virtualGear := 0
+                clutchNeutralSent := true
+            } ; end successful neutral command
+
+        } ; end neutral send branch
 
         lastClutchPressed := true
-        return ; waits for release
-    } ; end clutch held branch
+        return
+    } ; end clutch-neutral held branch
 
-    if lastClutchPressed { ; clutch release event
-        pendingGear := pendingGear > maxForwardGear ? maxForwardGear : pendingGear ; clamps pending gear to current car gearbox limit
-        SendGearToMod(pendingGear, true) ; force gear re-engagement on clutch release
-        virtualGear := pendingGear ; tracks newly engaged h-pattern gear
-        lastClutchPressed := false ; clears clutch event
-        clutchNeutralSent := false ; clears neutral state defensively
-        return ; end release handling
-    } ; end release branch
+    ; Clutch Required, Forward Gear Selected
+    if requireClutch && clutchPressed {
+        lastClutchPressed := true
+        return
+    } ; end clutch-required held branch
 
-    if selectedGear = 0 { ; passive physical neutral
-        SendGearToMod(0)
-        virtualGear := 0
-    } else { ; idle state while a physical gear remains selected
-        virtualGear := selectedGear ; keeps the virtual gear synchronized without sending another shift
-    } ; end passive tracking branch
+    ; Clutch Release
+    ; If either clutch feature participates, clutch release always makes the CURRENT physical H-shifter position authoritative.
+    ; Clutch release always uses the current physical selector position.
+    if clutchReleaseEdge {
+        if SendGearToMod(selectedGear,true) {
+            ; Only a successfully applied direct gear becomes authoritative.
+            virtualGear := selectedGear
+    
+            ; Clutch release has now made the CURRENT physical H-pattern gear authoritative. 
+            ; Record it as a shift only if it differs from the last driver-selected gear known by the statistics subsystem.
+            RecordShift(selectedGear)
+    
+            ClearClutchTransactionState()
+        } ; end successful clutch-release engagement
+        return
+    } ; end clutch-release branch
+
+    ; Without RequireClutch, moving the physical H-shifter applies the newly selected gear immediately.
+    if !requireClutch {
+        if physicalSelectionChanged {
+            if SendGearToMod(selectedGear, true) {
+                virtualGear := selectedGear
+
+                RecordShift(selectedGear)
+            } else {
+                ; Restore the previous physical-history state so the same physical selection can be retried on the next scan.
+                lastHPatternSelectedGear := previousHPatternSelectedGear
+            } ; end direct gear result
+        } ; end physical forward transition
+
+        return
+    } ; end no-clutch-required branch
+
 } ; end handlehpatterntransmission
 
 
-; =============================================================================
-; SECTION 18: SEQUENTIAL TRANSMISSION LOGIC
-; =============================================================================
+; ==========================================================================================================================================================
+; SECTION 22: SEQUENTIAL TRANSMISSION LOGIC
+; ==========================================================================================================================================================
 
-; =============================================================================
+; ==========================================================================================================================================================
 ; HandleSequentialBrakeHoldReset()
-; -----------------------------------------------------------------------------
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
 ; Implements a recovery heuristic for sequential mode.
 ;
 ; Timer Logic:
@@ -2268,7 +5335,7 @@ HandleHPatternTransmission(clutchPressed) { ; processes h-pattern mode
 ;
 ; Reset Actions:
 ;   virtualGear := 1
-;   SendGearToMod(1)
+;   SendGearToMod(1, true)
 ;
 ; Both the script state and game state are updated together to prevent desync.
 ;
@@ -2287,128 +5354,222 @@ HandleHPatternTransmission(clutchPressed) { ; processes h-pattern mode
 ;
 ; H-pattern mode never uses this logic because H-pattern mode always knows the
 ; selected gear position directly from the physical shifter.
-; =============================================================================
-HandleSequentialBrakeHoldReset() {
-    global transmissionIsSequential, enableBrakeHoldGearReset, brakeHoldResetMs
-    global brakeHoldStartTime, brakeHoldResetTriggered, virtualGear
-    global brakeResetStallGraceActive, brakeResetReleaseTime
+; ==========================================================================================================================================================
+HandleSequentialBrakeHoldReset(clutchPressed, combinedPedalValue) {
+    global transmissionIsSequential
+    global enableBrakeHoldGearReset
+    global brakeHoldResetMs
+    global brakeHoldStartTime
+    global brakeHoldResetTriggered
+    global virtualGear
+    global brakeResetStallGraceActive
+    global brakeResetReleaseTime
+    global statsLastGear
+    global pendingSequentialShiftCount
+    global sequentialShifterArmed
+    global clutchActsAsNeutral
+    global sequentialReverseAssistEligible
 
     if !transmissionIsSequential || !enableBrakeHoldGearReset {
-        brakeHoldStartTime := 0
-        brakeHoldResetTriggered := false
-
-        ; Brake-reset stall protection is meaningless outside this feature.
-        brakeResetStallGraceActive := false
-        brakeResetReleaseTime := 0
-
+        ClearSequentialBrakeResetState()
         return
     } ; end feature gate
 
-    if IsBrakePressedForSequentialReset() {
+    if IsBrakePressedForSequentialReset(combinedPedalValue) {
         if brakeHoldStartTime = 0 {
             brakeHoldStartTime := A_TickCount
         } ; end start-time branch
 
+        ; Measure how long the hard-brake condition has been continuously active.
         heldMs := A_TickCount - brakeHoldStartTime
 
         if heldMs >= brakeHoldResetMs && !brakeHoldResetTriggered {
+            sequentialReverseAssistEligible := virtualGear != 0
+
+            ; Establish first gear as the new authoritative target.
             virtualGear := 1
-            SendGearToMod(1)
+            statsLastGear := 1
+
+            pendingSequentialShiftCount := 0
+            sequentialShifterArmed := false
+
+            ; Preserve clutch-to-neutral if the clutch is currently holding the game in neutral. 
+            ; First gear will be re-engaged normally on clutch release.
+            if !(clutchActsAsNeutral && clutchPressed) {
+                SendGearToMod(1, true)
+            }
 
             brakeHoldResetTriggered := true
-
-            ; The reset has occurred while the brake is being used for reverse.
-            ; Suppress stall detection until the brake is released and the
-            ; post-release grace period has elapsed.
             brakeResetStallGraceActive := true
             brakeResetReleaseTime := 0
 
             ShowToolTipMessage("sequential gear reset to 1 after brake hold")
-        } ; end reset trigger branch
+        }
     } else {
+        ; Hard-braking condition is no longer present, so an unfinished hold timer must restart if hard braking begins again.
         brakeHoldStartTime := 0
-        brakeHoldResetTriggered := false
 
-        ; Don't clear brakeResetStallGraceActive here
-        ; The brake release is what begins the post-reset grace period,
-        ; which is handled by ShouldSuppressStallForBrakeReset().
+        if !IsBrakePedalActive(combinedPedalValue) {
+            ; The brake has actually been released, so the one-shot reset may be armed again for the next brake-hold sequence.
+            brakeHoldResetTriggered := false
+            sequentialReverseAssistEligible := false
+
+            if brakeResetStallGraceActive && brakeResetReleaseTime = 0 {
+                brakeResetReleaseTime := A_TickCount
+            } ; end grace release timestamp
+        } ; end full-release rearm
     } ; end brake state branch
 } ; end handlesequentialbrakeholdreset
 
-; =============================================================================
-; TrySequentialShift(direction)
-; -----------------------------------------------------------------------------
-; Handles one sequential upshift/downshift request.
+; ==========================================================================================================================================================
+; TrySequentialShift(direction, clutchPressed)
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
+; Handles one accepted sequential shift request.
 ;
-; There are three sequential behavior modes:
+; Immediate-output modes commit virtualGear and statistics ONLY after the
+; required game output succeeds.
 ;
-; 1. no clutch required + no clutch-neutral:
-;      shift immediately by sending the game's up/down key
+; Deferred clutch modes may update virtualGear immediately because the accepted
+; lever movement itself establishes the new tracked target gear; the game
+; command is intentionally deferred until clutch release.
 ;
-; 2. clutch required + no clutch-neutral:
-;      do not shift immediately
-;      store a net pending shift count
-;      send the final net shift amount on clutch release
+; Sequential behavior by clutch configuration:
 ;
-; 3. clutch-neutral enabled:
-;      update virtualGear while clutch is held
-;      clutch release sends direct gear key for virtualGear
+; RequireClutch=0, ClutchActsAsNeutral=0:
+;   send the normal game shift immediately
+;   commit virtualGear only after successful output
 ;
-; =============================================================================
-TrySequentialShift(direction) { ; handles sequential shift input
-    global requireClutch, clutchActsAsNeutral, virtualGear, shiftUpKey, shiftDownKey, pendingSequentialShiftCount, maxForwardGear ; sequential settings and state
+; RequireClutch=1, ClutchActsAsNeutral=0:
+;   accept shifts only while clutch is pressed
+;   accumulate net movement for clutch release
+;
+; RequireClutch=0, ClutchActsAsNeutral=1:
+;   clutch released -> send immediate game shift, then commit target
+;   clutch pressed  -> update only the deferred direct-gear target
+;
+; RequireClutch=1, ClutchActsAsNeutral=1:
+;   accept shifts only while clutch is pressed
+;   update the deferred direct-gear target while the game remains neutral
+; ==========================================================================================================================================================
+TrySequentialShift(direction, clutchPressed) {
+    global requireClutch, clutchActsAsNeutral
+    global virtualGear, maxForwardGear
+    global shiftUpKey, shiftDownKey
+    global pendingSequentialShiftCount
 
-    if clutchActsAsNeutral { ; clutch-neutral mode uses virtual gear for re-engagement
-        if requireClutch && !IsClutchPressed() { ; blocks tracking if clutch is required but not pressed
-            return ; ignores invalid shift completely
+    ; Resolve Requested Direction
+    previousGear := virtualGear
+
+    if direction = "up" {
+        targetGear := Min(previousGear + 1, maxForwardGear)
+        shiftKey := shiftUpKey
+    } else if direction = "down" {
+        targetGear := Max(previousGear - 1, 0)
+        shiftKey := shiftDownKey
+    } else {
+        return false
+    } ; end direction resolution
+
+    if targetGear = previousGear {
+        ; Example:
+        ;   6 -> up
+        ;   N -> down
+        ; No real gear change exists, so no output or statistic is generated.
+        return false
+    } ; end unchanged target guard
+
+    ; Clutch -> Neutral Model
+    if clutchActsAsNeutral {
+
+        ; When the clutch is mandatory, an unclutched shift attempt is ignored.
+        if requireClutch && !clutchPressed {
+            return false
         } ; end clutch-required gate
 
-        if direction = "up" { ; upshift request
-            virtualGear := Min(virtualGear + 1, maxForwardGear) ; increases one gear but never above the current car's highest forward gear
-        } else { ; downshift request
-            virtualGear := Max(virtualGear - 1, 0) ; decreases one gear but never below neutral (0)
-        } ; end virtual gear update branch
+        if !clutchPressed {
+            if !TapKey(shiftKey) {
+                return false
+            } ; end failed immediate output
+        } ; end immediate passthrough
 
-        if !requireClutch && !IsClutchPressed() { ; no clutch required and clutch is not pressed
-            if direction = "up" { ; upshift request
-                TapKey(shiftUpKey) ; sends game's normal upshift key immediately
-            } else { ; downshift request
-                TapKey(shiftDownKey) ; sends game's normal downshift key immediately
-            } ; end passthrough branch
-        } ; end no-clutch passthrough branch
+        virtualGear := targetGear
 
-        return ; clutch-neutral mode handled
-    } ; end clutch-neutral branch
+        RecordShift(virtualGear)
 
-    if requireClutch && !IsClutchPressed() { ; blocks shift if clutch is required but not pressed
-        return ; ignores invalid shift attempt
-    } ; end clutch gate
+        return true
+    } ; end clutch-neutral model
 
-    if requireClutch { ; clutch-gated passthrough mode
-        if direction = "up" { ; pending upshift
-            pendingSequentialShiftCount += 1 ; adds one pending upshift
-            virtualGear := Min(virtualGear + 1, maxForwardGear) ; tracks estimated gear after valid shift request
-        } else { ; pending downshift
-            pendingSequentialShiftCount -= 1 ; adds one pending downshift
-            virtualGear := Max(virtualGear - 1, 0) ; tracks estimated gear or neutral after valid shift request
-        } ; end pending direction branch
+    ; Clutch-Required Passthrough Model
+    if requireClutch {
+        if !clutchPressed {
+            return false
+        } ; end clutch gate
 
-        pendingSequentialShiftCount := Max(-6, Min(6, pendingSequentialShiftCount)) ; limits queued net shifts to the full neutral-through-6th gearbox range
-        return ; does not send shift until clutch release
-    } ; end clutch-gated passthrough branch
+        if shiftKey = "" {
+            return false
+        } ; end unavailable queued-output guard
 
-    if direction = "up" { ; no-clutch passthrough upshift
-        virtualGear := Min(virtualGear + 1, maxForwardGear) ; tracks estimated gear
-        TapKey(shiftUpKey)
-    } else { ; no-clutch passthrough downshift
-        virtualGear := Max(virtualGear - 1, 0) ; tracks estimated gear or neutral
-        TapKey(shiftDownKey)
-    } ; end no-clutch passthrough branch
+        virtualGear := targetGear
+
+        pendingSequentialShiftCount += targetGear - previousGear
+        pendingSequentialShiftCount := Max(-maxForwardGear, Min(maxForwardGear, pendingSequentialShiftCount))
+
+        RecordShift(virtualGear)
+
+        return true
+    } ; end clutch-required passthrough model
+
+    if !TapKey(shiftKey) {
+        return false
+    } ; end failed immediate output
+
+    virtualGear := targetGear
+
+    RecordShift(virtualGear)
+
+    return true
 } ; end trysequentialshift
 
-; =============================================================================
+; ==========================================================================================================================================================
+; SendQueuedSequentialShifts(shiftCount)
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
+; Sends the net sequential shift requests accumulated while the clutch was held.
+;
+; Positive count:
+;   sends queued upshifts
+;
+; Negative count:
+;   sends queued downshifts
+;
+; Zero:
+;   sends nothing
+;
+; queuedShiftDelayMs is applied only BETWEEN queued shifts. No delay is needed
+; after the final shift because there is no following command to separate.
+; ==========================================================================================================================================================
+SendQueuedSequentialShifts(shiftCount) {
+    global shiftUpKey, shiftDownKey, queuedShiftDelayMs
+
+    if shiftCount = 0 {
+        return
+    } ; end empty queue guard
+
+    shiftKey := shiftCount > 0 ? shiftUpKey : shiftDownKey
+
+    shiftTotal := Abs(shiftCount)
+
+    Loop shiftTotal {
+        TapKey(shiftKey)
+
+        if A_Index < shiftTotal {
+            Sleep queuedShiftDelayMs
+        }
+    } ; end queued shift loop
+} ; end sendqueuedsequentialshifts
+
+; ==========================================================================================================================================================
 ; HandleSequentialTransmission(clutchPressed)
-; -----------------------------------------------------------------------------
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
 ; Handles sequential transmission mode.
 ;
 ; Sequential mode has two different internal models:
@@ -2424,294 +5585,648 @@ TrySequentialShift(direction) { ; handles sequential shift input
 ; With clutch required and clutch-neutral disabled:
 ;   shift requests are accumulated as pendingSequentialShiftCount
 ;   the net result is sent when the clutch is released
+
+; Shifter-handbrake arbitration:
+;   if its configured slot overlaps neither sequential shift binding, both
+;   sequential directions remain fully usable
 ;
-; =============================================================================
+;   if its configured slot overlaps either sequential shift binding, the entire
+;   sequential H-shifter pair is intentionally suppressed
+;
+; Sequential shifter inputs fail closed:
+;   if either shift input cannot be read, the shifter is disarmed and must
+;   return to a successfully observed neutral position before shifting resumes.
+;
+; ==========================================================================================================================================================
 HandleSequentialTransmission(clutchPressed) {
-    global clutchActsAsNeutral, virtualGear, lastUpshiftPressed, lastDownshiftPressed, lastClutchPressed, clutchNeutralSent, sequentialShifterArmed ; sequential state
-    global requireClutch, shiftUpKey, shiftDownKey, pendingSequentialShiftCount, queuedShiftDelayMs ; clutch-gated passthrough settings
+    global clutchActsAsNeutral
+    global virtualGear
+    global lastUpshiftPressed, lastDownshiftPressed
+    global lastClutchPressed, clutchNeutralSent
+    global sequentialShifterArmed
+    global requireClutch
+    global pendingSequentialShiftCount
+    global activeSequentialUpshiftButton
+    global activeSequentialDownshiftButton
+    global enableShifterHandbrake
+    global shifterHandbrakeConflict
 
-    if clutchActsAsNeutral && clutchPressed && !clutchNeutralSent { ; sends neutral once on clutch press
-        SendGearToMod(0)
-        clutchNeutralSent := true
-    } ; end clutch neutral branch
+    ; Clutch -> Neutral
+    if clutchActsAsNeutral && clutchPressed && !clutchNeutralSent {
+        if SendGearToMod(0, true) {
+            clutchNeutralSent := true
+        } ; end successful neutral command
+    } ; end clutch-neutral branch
 
-    if IsShifterHandbrakeModeActive() { ; disables shifter-slot sequential shifting while shifter is used as handbrake
-        upshiftPressed := false ; prevents shifter slot from sending upshift
-        downshiftPressed := false ; prevents shifter slot from sending downshift
+    ; Read Sequential Shifter Inputs
+    sequentialInputsReadable := true
+    upshiftPressed := false
+    downshiftPressed := false
+
+    if enableShifterHandbrake && shifterHandbrakeConflict { ; suppresses the sequential pair when the active handbrake slot owns either shift input
         sequentialShifterArmed := true
-    } else { ; normal sequential shifter mode
-        upshiftPressed := SafeGetKeyState(GetSequentialUpshiftButton(), false) ; reads sequential upshift input
-        downshiftPressed := SafeGetKeyState(GetSequentialDownshiftButton(), false) ; reads sequential downshift input
-    } ; end shifter handbrake branch
 
-    if !upshiftPressed && !downshiftPressed { ; if sequential lever is physically back in neutral
-        sequentialShifterArmed := true ; arm sequential shifting only after neutral is detected
-        lastUpshiftPressed := false ; clear upshift edge state so the next upshift can register
-        lastDownshiftPressed := false ; clear downshift edge state so the next downshift can register
+    } else { ; reads both sequential directions normally when the handbrake overlaps neither configured shift slot
+        upshiftReadable := TryGetInputState(activeSequentialUpshiftButton, &upshiftPressed)
+        downshiftReadable := TryGetInputState(activeSequentialDownshiftButton, &downshiftPressed)
+
+        if !upshiftReadable || !downshiftReadable { ; fails closed when either half of the required sequential pair cannot be determined safely
+            sequentialInputsReadable := false ; prevents an unreadable scan from satisfying the neutral re-arm condition
+            sequentialShifterArmed := false ; requires a future successfully observed neutral position before another sequential shift
+            lastUpshiftPressed := false ; clears stale upshift edge history because the physical state is no longer trustworthy
+            lastDownshiftPressed := false
+            upshiftPressed := false ; forces the local unreadable upshift state inactive for this scan
+            downshiftPressed := false
+        } ; end unreadable sequential-input guard
+    } ; end sequential-shifter availability branch
+
+    ; Sequential Shifter Re-Arm
+    if sequentialInputsReadable && !upshiftPressed && !downshiftPressed { ; accepts only a trustworthy scan where neither sequential direction is active
+        sequentialShifterArmed := true ; marks the sequential lever ready to accept the next physical movement
+        lastUpshiftPressed := false ; clears old upshift history so the next press creates exactly one new edge
+        lastDownshiftPressed := false
     } ; end neutral-arm branch
 
-    if !sequentialShifterArmed { ; blocks stale shifter position after switching into sequential mode
-        if lastClutchPressed && !clutchPressed { ; still handle clutch release while waiting for neutral
-            if clutchActsAsNeutral { ; clutch-neutral mode
-                SendGearToMod(virtualGear, true) ; re-engages tracked gear on clutch release
-            } ; end clutch-neutral release branch
+    ; Shifter Arming Gate
+    if !sequentialShifterArmed { ; blocks physical shift processing until a safe neutral-return state has been established
+        if lastClutchPressed && !clutchPressed { ; still recognizes clutch release while the sequential lever itself remains disarmed
 
-            clutchNeutralSent := false ; resets neutral flag even while shifter is not armed
+            if clutchActsAsNeutral { ; handles clutch release in the direct virtual-gear model
+                SendGearToMod(virtualGear, true) ; re-engages the currently tracked forward gear after clutch-neutral disengages
+
+            } else if requireClutch && pendingSequentialShiftCount != 0 { ; completes an already-queued passthrough shift transaction on clutch release
+                SendQueuedSequentialShifts(pendingSequentialShiftCount) ; emits the accumulated net upshift/downshift requests in order
+                pendingSequentialShiftCount := 0 ; clears the transaction after its queued commands have been emitted
+            } ; end clutch-release behavior branch
+
+            clutchNeutralSent := false ; prepares clutch-neutral state for the next independent clutch press
         } ; end clutch release while unarmed
 
-        lastClutchPressed := clutchPressed ; still tracks clutch state while waiting for neutral
-        return ; waits until shifter returns to neutral before allowing sequential shifts
+        lastClutchPressed := clutchPressed ; preserves current clutch state so the next scan can detect a release edge correctly
+        return ; stops here because the physical sequential lever is not currently allowed to create new shift requests
     } ; end arming gate
 
-    if upshiftPressed && !lastUpshiftPressed { ; upshift edge
-        TrySequentialShift("up")
+    ; Sequential Shift Edges
+    if upshiftPressed && !lastUpshiftPressed { ; accepts only the rising edge of the physical upshift input
+        TrySequentialShift("up", clutchPressed) ; routes one upshift request through the active clutch/sequential transmission model
     } ; end upshift branch
 
-    if downshiftPressed && !lastDownshiftPressed { ; downshift edge
-        TrySequentialShift("down")
+    if downshiftPressed && !lastDownshiftPressed { ; accepts only the rising edge of the physical downshift input
+        TrySequentialShift("down", clutchPressed) ; routes one downshift request through the active clutch/sequential transmission model
     } ; end downshift branch
 
-    if lastClutchPressed && !clutchPressed { ; clutch release edge
-        if clutchActsAsNeutral {
-            SendGearToMod(virtualGear) ; re-engages tracked direct gear
-        } else if requireClutch && pendingSequentialShiftCount != 0 { ; clutch-gated passthrough mode
-            if pendingSequentialShiftCount > 0 { ; net result is upshifts
-                Loop pendingSequentialShiftCount { ; sends one upshift per pending step
-                    TapKey(shiftUpKey)
-                    Sleep queuedShiftDelayMs ; waits so the game can detect the next queued shift
-                } ; end upshift loop
-            } else { ; net result is downshifts
-                Loop Abs(pendingSequentialShiftCount) { ; sends one downshift per pending step
-                    TapKey(shiftDownKey)
-                    Sleep queuedShiftDelayMs
-                } ; end downshift loop
-            } ; end pending shift direction branch
+    ; Clutch Release
+    if lastClutchPressed && !clutchPressed { ; detects the transition from clutch pressed to clutch released
+        if clutchActsAsNeutral { ; restores direct gear engagement after temporary clutch-neutral operation
+            SendGearToMod(virtualGear, true) ; forces the tracked virtual gear back into MW2005-HShifter
 
-            pendingSequentialShiftCount := 0 ; clears pending shifts after sending
-        } ; end clutch release behavior branch
+        } else if requireClutch && pendingSequentialShiftCount != 0 { ; completes queued passthrough shifts only when clutch gating is enabled
+            SendQueuedSequentialShifts(pendingSequentialShiftCount) ; sends the net shift requests accumulated during the clutch hold
+            pendingSequentialShiftCount := 0 ; clears the completed queued-shift transaction
+        } ; end clutch-release behavior branch
 
-        clutchNeutralSent := false
+        clutchNeutralSent := false ; allows the next clutch press to send a fresh neutral command when required
     } ; end release branch
 
-    if upshiftPressed || downshiftPressed { ; if sequential lever is currently in an upshift or downshift slot
-        lastUpshiftPressed := upshiftPressed ; stores upshift state for edge detection
+    if upshiftPressed || downshiftPressed { ; stores physical state only while one of the sequential directions is actively selected
+        lastUpshiftPressed := upshiftPressed ; remembers whether upshift is currently held for next-scan edge detection
         lastDownshiftPressed := downshiftPressed
-    } ; end active sequential state branch
+    } ; end active sequential-state branch
 
-    lastClutchPressed := clutchPressed ; stores clutch state
+    lastClutchPressed := clutchPressed ; preserves the current clutch state for release-edge detection on the next scan
 } ; end handlesequentialtransmission
 
-; =============================================================================
-; HandlePaddleSync()
-; -----------------------------------------------------------------------------
-; Updates RealManual's sequential virtual gear when the game's native paddle
-; shifters are used.
-;
-;   This function does not send any shift key.
-;   The game already receives the paddle input directly.
-;
-; Its only job is to keep virtualGear aligned with shifts caused outside of
-; RealManual's normal sequential shifter logic.
-; =============================================================================
-HandlePaddleSync() {
-    global transmissionIsSequential, enablePaddleSync, virtualGear, maxForwardGear ; sequential mode and tracked gear
-    global paddleUpshiftButton, paddleDownshiftButton ; paddle button mappings
-    global lastPaddleUpshiftPressed, lastPaddleDownshiftPressed ; previous paddle states
 
-    if !transmissionIsSequential || !enablePaddleSync { ; only runs paddle sync in sequential mode when enabled
-        lastPaddleUpshiftPressed := false ; clears stale upshift edge state
-        lastPaddleDownshiftPressed := false
-        return ; skip paddle sync
-    } ; end mode gate
+; ==========================================================================================================================================================
+; SECTION 23: RECOVERY AND MANUAL SYNC
+; ==========================================================================================================================================================
 
-    paddleUpshiftPressed := SafeGetKeyState(paddleUpshiftButton, false) ; reads paddle upshift button
-    paddleDownshiftPressed := SafeGetKeyState(paddleDownshiftButton, false)
-
-    if paddleUpshiftPressed && !lastPaddleUpshiftPressed { ; detects new paddle upshift press
-        virtualGear := Min(virtualGear + 1, maxForwardGear) ; updates virtual gear upward without sending a key
-    } ; end paddle upshift branch
-
-    if paddleDownshiftPressed && !lastPaddleDownshiftPressed {
-        virtualGear := Max(virtualGear - 1, 0)
-    } ; end paddle downshift branch
-
-    lastPaddleUpshiftPressed := paddleUpshiftPressed ; stores upshift state for next scan
-    lastPaddleDownshiftPressed := paddleDownshiftPressed
-} ; end handlepaddlesync
-
-
-; =============================================================================
-; SECTION 19: RECOVERY AND MANUAL SYNC
-; =============================================================================
-
-; =============================================================================
+; ==========================================================================================================================================================
 ; SyncGear(gearNumber)
-; -----------------------------------------------------------------------------
-; Manually synchronizes RealManual's internal gear state with a known gear.
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
+; Manually synchronizes RealManual with a fixed MW2005-HShifter gear command.
 ;
-; This is mainly for sequential mode, where the game may start an event in an
-; unknown gear while RealManual assumes first gear.
+; Gear model:
+;   -1  = reverse
+;    0  = neutral
+;   1-6 = forward gears
 ;
-; Number keys 1-6 and N call this function.
-; =============================================================================
+; Neutral and forward commands update RealManual's tracked gear directly.
+;
+; Reverse is sent directly to MW2005-HShifter, while virtualGear
+; remains at first because NFSMW returns to first when brake-held reverse ends.
+;
+; Any manual synchronization clears transient shift/clutch state so an older
+; queued operation cannot immediately undo the requested synchronization.
+; ==========================================================================================================================================================
 SyncGear(gearNumber) {
-    global enableSyncHotkeys, virtualGear, pendingGear, lastClutchPressed, clutchNeutralSent, maxForwardGear ; sync state
+    global virtualGear, maxForwardGear
+    global pendingSequentialShiftCount
+    global sequentialShifterArmed
     global engineStalled
+    global statsLastGear
 
     if engineStalled {
-        return ; manual sync cannot bypass the ignition requirement
-    }
+        return ; manual gear commands cannot bypass the engine-off state
+    } ; end engine-off guard
 
-    if gearNumber > maxForwardGear { ; prevents syncing above current car gearbox limit
-        gearNumber := maxForwardGear ; clamps requested gear to current maximum
-    } ; end max gear clamp
+    if gearNumber < -1 || gearNumber > 6 {
+        return ; accepts only the fixed H-Shifter gear-command range
+    } ; end gear range guard
 
-    if !enableSyncHotkeys { ; checks sync toggle
-        return ; ignores sync
-    } ; end toggle check
+    pendingSequentialShiftCount := 0
 
-    virtualGear := gearNumber ; updates sequential gear
-    pendingGear := gearNumber ; updates h-pattern pending gear
-    lastClutchPressed := false ; clears clutch state
-    clutchNeutralSent := false ; clears neutral state
-    SendGearToMod(gearNumber, true) ; sends selected gear
-    ShowToolTipMessage("synced gear " gearNumber)
+    ClearTransmissionInputState()
+    ClearSequentialBrakeResetState()
+    ClearStallDetectionState()
+
+    ; A currently held sequential lever position must return to neutral before it can modify the newly synchronized gear.
+    sequentialShifterArmed := false
+
+    ; Reverse
+    if gearNumber = -1 {
+        ; Reverse itself is not stored in the sequential virtual-gear model.
+        ; First gear is the best-known forward state after NFSMW leaves reverse.
+        virtualGear := 1
+        statsLastGear := -1
+        SendGearToMod(-1, true)
+        ShowToolTipMessage("synced gear reverse")
+        return
+    } ; end reverse synchronization
+
+    ; Neutral / Forward
+    if gearNumber > maxForwardGear {
+        gearNumber := maxForwardGear
+    } ; end gearbox-limit clamp
+
+    virtualGear := gearNumber
+    statsLastGear := gearNumber
+    SendGearToMod(gearNumber, true)
+
+    if gearNumber = 0 {
+        ShowToolTipMessage("synced gear neutral")
+    } else {
+        ShowToolTipMessage("synced gear " gearNumber)
+    } ; end status message
+
 } ; end syncgear
 
-
-; =============================================================================
-; ResetInputs()
-; -----------------------------------------------------------------------------
-; Resets RealManual after race restart or unusual game state changes.
+; ==========================================================================================================================================================
+; ResetInputs(syncGame := true, showStatus := true)
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
+; Restores RealManual to a clean first-gear running state after a race restart,
+; unusual transmission/input desynchronization, or a newly launched NFSMW
+; process.
 ;
-;   resets virtual and pending gear to 1
-;   clears clutch and sequential edge states
-;   releases reverse if stuck
-;   releases handbrake if stuck
+; Reset actions:
+;   establishes first gear as RealManual's known transmission state
+;   clears pending clutch and sequential shift transactions
+;   clears sequential/paddle edge-detection state
+;   re-arms reverse and brake-reset recovery state
+;   requires sequential/shifter-handbrake inputs to return to neutral
+;   clears the simulated engine-off state
 ;
-; This is a recovery function.
-; =============================================================================
-ResetInputs() {
-    global virtualGear, pendingGear, lastSentGear, lastClutchPressed, clutchNeutralSent, lastUpshiftPressed, lastDownshiftPressed, pendingSequentialShiftCount, reverseHeld, reverseKey, handbrakeHeld, handbrakeKey, lastPaddleUpshiftPressed, lastPaddleDownshiftPressed
-    global engineStalled, stallDetectionArmed
-    global lastStallNeutralSendTime, noInputStallStartTime
+; syncGame = true:
+;   actively sends first gear to MW2005-HShifter and re-evaluates handbrake output
+;
+; syncGame = false:
+;   changes internal RealManual state only
+;   sends no keyboard output to NFSMW/MW2005-HShifter
+;   intended for a newly launched game instance that already starts in first gear
+;
+; showStatus = true:
+;   displays the normal reset confirmation tooltip
+;
+; showStatus = false:
+;   performs the reset silently
+;
+; Stopwatch, statistics counters, and current runtime mode settings are
+; intentionally unaffected.
+; ==========================================================================================================================================================
+ResetInputs(syncGame := true, showStatus := true) {
+    global virtualGear
+    global pendingSequentialShiftCount
+    global sequentialShifterArmed, shifterHandbrakeArmed
+    global engineStalled
+    global lastStallNeutralSendTime
+    global lastHPatternSelectedGear
+    global lastSentGear
+    global handbrakeHeld
+    global statsLastGear
+    global stallSuppressedUntilShift
+    global reverseAssistHeld
 
+    ; Clear Gear / Shift Transactions
     virtualGear := 1
-    pendingGear := 1
-    lastSentGear := 1
-    lastClutchPressed := false
-    clutchNeutralSent := false
-    lastUpshiftPressed := false
-    lastDownshiftPressed := false
-    lastPaddleUpshiftPressed := false
-    lastPaddleDownshiftPressed := false
+    statsLastGear := 1
+
     pendingSequentialShiftCount := 0
+    lastHPatternSelectedGear := -2
+
+    ClearTransmissionInputState()
+    ClearSequentialBrakeResetState()
+
+    ; Require a return to neutral before an already-selected sequential or shifter-handbrake slot can be interpreted as a fresh input.
+    sequentialShifterArmed := false
+    shifterHandbrakeArmed := false
+
+    ; Clear Engine-Off / Stall State
     engineStalled := false
-    stallDetectionArmed := false
     lastStallNeutralSendTime := 0
-    noInputStallStartTime := 0
 
-    if reverseHeld { ; releases reverse if stuck
-        SendEvent "{" reverseKey " up}"
-        reverseHeld := false
-    } ; end reverse release
+    ClearStallDetectionState()
 
-    if handbrakeHeld { ; releases handbrake if stuck
-        SendEvent "{" handbrakeKey " up}"
+    stallSuppressedUntilShift := !syncGame
+
+    ; Synchronize Game / Output State
+    if syncGame {
+        ReleaseReverseAssistQuietly()
+
+        ; Force bypasses the lastSentGear cache because ResetInputs() is deliberately establishing first gear as the authoritative state.
+        SendGearToMod(1, true)
+
+        ; Re-evaluate all valid handbrake sources rather than blindly releasing the output. 
+        ; A physically pulled analog handbrake should remain active.
+        HandleHandbrake()
+
+    } else {
+
+        ; A newly launched NFSMW instance starts in first gear
+        lastSentGear := 1
+
         handbrakeHeld := false
-    } ; end handbrake release
+        reverseAssistHeld := false
+    } ; end synchronization mode
 
-    ShowToolTipMessage("transmission bridge reset to gear 1")
+    if showStatus {
+        ShowToolTipMessage("transmission bridge reset to gear 1")
+    } ; end status notification
+
 } ; end resetinputs
 
+; ==========================================================================================================================================================
+; SECTION 24: NFSMW PROCESS / FOCUS TRACKING
+; ==========================================================================================================================================================
 
-; =============================================================================
-; SECTION 20: MAIN LOOP
-; =============================================================================
+; ==========================================================================================================================================================
+; IsNFSFocused()
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
+; Determines whether Need for Speed is currently the active foreground window.
+;
+; Returns:
+;   true  = speed.exe is focused and receiving input
+;   false = another application currently has focus
+;
+; Used to prevent RealManual from reading inputs or sending game commands while
+; interacting with another application.
+; ==========================================================================================================================================================
+IsNFSFocused() {
+    return WinActive("ahk_exe speed.exe")
+} ; end isnfsfocused
 
-; =============================================================================
+; ==========================================================================================================================================================
+; InitializeNFSProcessTracking()
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
+; Establishes the NFSMW process that exists when RealManual starts.
+;
+; An already-running game is treated as the initial known instance rather than as a restart. 
+; If the game is not running yet, RealManual simply waits for the first instance to appear.
+; ==========================================================================================================================================================
+InitializeNFSProcessTracking() {
+    global nfsProcessPid
+    global nfsProcessSeen
+
+    currentPid := ProcessExist("speed.exe")
+
+    SynchronizeStatsSession(currentPid)
+
+    if currentPid {
+        nfsProcessPid := currentPid
+        nfsProcessSeen := true
+    } else {
+        nfsProcessPid := 0
+        nfsProcessSeen := false
+    } ; end initial process state
+} ; end initializenfsprocesstracking
+
+; ==========================================================================================================================================================
+; MonitorNFSProcess()
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
+; Detects when the current NFSMW process is replaced by a new speed.exe instance.
+;
+; The first game instance observed after RealManual starts is accepted normally.
+; A later instance is treated as a game restart/crash recovery and schedules a transmission-state reset.
+;
+; The reset itself is deferred to MainLoop() so no H-Shifter command is sent until the replacement game instance is actually focused.
+; ==========================================================================================================================================================
+MonitorNFSProcess() {
+    global nfsProcessPid
+    global nfsProcessSeen
+    global nfsInstanceResetPending
+
+    currentPid := ProcessExist("speed.exe")
+
+    ; No Game Process Running
+    if !currentPid {
+        if nfsProcessPid != 0 {
+            SynchronizeStatsSession(0)
+        } ; end ended-process statistics finalization
+
+        nfsProcessPid := 0
+
+        return
+    } ; end no-process branch
+
+    ; First Game Instance
+    if !nfsProcessSeen {
+        SynchronizeStatsSession(currentPid)
+
+        nfsProcessPid := currentPid
+        nfsProcessSeen := true
+
+        return
+    } ; end first-instance branch
+
+    ; Game Returned After Previous Instance Disappeared
+    if nfsProcessPid = 0 {
+        SynchronizeStatsSession(currentPid)
+
+        nfsProcessPid := currentPid
+        nfsInstanceResetPending := true
+
+        return
+    } ; end replacement-after-exit branch
+
+    ; PID Changed Without Observing an Empty Interval
+    if currentPid != nfsProcessPid {
+        SynchronizeStatsSession(currentPid)
+
+        nfsProcessPid := currentPid
+        nfsInstanceResetPending := true
+    } ; end direct replacement branch
+
+} ; end monitornfsprocess
+
+
+; ==========================================================================================================================================================
+; SECTION 25: MAIN LOOP
+; ==========================================================================================================================================================
+
+; ==========================================================================================================================================================
+; SetMainLoopTimerInterval(intervalMs)
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
+; Changes MainLoop's timer interval only when the requested interval differs
+; from the interval already scheduled.
+;
+; intervalMs:
+;   > 0 = run MainLoop repeatedly at that interval
+;     0 = stop MainLoop
+;
+; Avoids repeatedly resetting the same AutoHotkey timer from inside the hot
+; polling path.
+; ==========================================================================================================================================================
+SetMainLoopTimerInterval(intervalMs) {
+    global mainLoopTimerIntervalMs
+
+    intervalMs := Max(0, intervalMs)
+
+    if intervalMs = mainLoopTimerIntervalMs {
+        return
+    } ; end unchanged interval guard
+
+    SetTimer(MainLoop, intervalMs)
+
+    mainLoopTimerIntervalMs := intervalMs
+} ; end setmainlooptimerinterval
+
+; ==========================================================================================================================================================
+; UpdateMainLoopSchedule()
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
+; Chooses the appropriate MainLoop timer state from RealManual's current runtime
+; context.
+;
+; Scheduling policy:
+;   paused / menu automation = MainLoop stopped
+;   NFSMW focused            = normal fast scan interval
+;   NFSMW unfocused          = slower idle polling interval
+; ==========================================================================================================================================================
+UpdateMainLoopSchedule() {
+    global scriptPaused
+    global videoSettingsSequenceActive
+    global scanIntervalMs
+    global mainLoopIdleIntervalMs
+
+    if scriptPaused || videoSettingsSequenceActive {
+        SetMainLoopTimerInterval(0)
+        return
+    } ; end suspended-state scheduling
+
+    targetInterval := IsNFSFocused() ? scanIntervalMs : mainLoopIdleIntervalMs
+
+    SetMainLoopTimerInterval(
+        targetInterval
+    )
+} ; end updatemainloopschedule
+
+; ==========================================================================================================================================================
 ; MainLoop()
-; -----------------------------------------------------------------------------
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
 ; Central routing loop for RealManual.
 ;
-; Runs every scanIntervalMs milliseconds.
+; Scheduling:
+;   NFSMW focused:
+;       runs at scanIntervalMs for responsive input handling
+;
+;   NFSMW unfocused:
+;       runs at mainLoopIdleIntervalMs only to detect refocus
+;
+;   RealManual paused or menu automation active:
+;       timer is stopped
 ;
 ; Order of operations:
-;   1. exit early if manually paused
-;   2. release held outputs once if NFS loses focus
-;   3. exit early if NFS is not focused
-;   4. process stall
-;   5. process handbrake
-;   6. process sequential brake-hold reset heuristic
-;   7. process H-pattern reverse override
-;   8. read clutch state once
-;   9. route to H-pattern or sequential transmission logic
+;   1. pause / menu-automation guard
+;   2. focus-transition cleanup and focus guard
+;   3. new-process synchronization
+;   4. stalled-engine maintenance
+;   5. configured paddle / keyboard synchronization and handbrake handling
+;   6. H-pattern position snapshot when applicable
+;   7. feature-aware pedal snapshot
+;   8. active transmission-mode processing
+;   9. enabled reverse-assist / stall processing
 ;
-; Reverse is handled before forward gears because reverse should override normal
-; shifting while the reverse slot is physically active.
-; =============================================================================
-MainLoop() {  ; routes input to selected transmission mode
-    global transmissionIsSequential, scriptPaused, lastNFSFocused  ; mode, pause state, and focus state
+; H-pattern transmission handling evaluates reverse before neutral/forward processing so the physical reverse slot cannot fall through as another state.
+; ==========================================================================================================================================================
+MainLoop() {
+    global transmissionIsSequential
+    global scriptPaused
+    global lastNFSFocused
+    global nfsInstanceResetPending
+    global videoSettingsSequenceActive
+    global requireClutch
+    global clutchActsAsNeutral
+    global enableReverseAssist
+    global reverseAssistHeld
+    global enableBrakeHoldGearReset
+    global enableStalling
+    global combinedPedalCenter
+    global stallSuppressedUntilShift
+    global brakeResetStallGraceActive
+    global lastSentGear
+    global scanIntervalMs
+    global mainLoopIdleIntervalMs
+    global paddleSyncConfigured
+    global keyboardShiftSyncConfigured
+    global analogHandbrakeConfigured
+    global enableShifterHandbrake
+    global handbrakeHeld
 
-    if scriptPaused {  ; skips all input handling while manually paused
-        return  ; does nothing until resumed
-    }
-
-    if !IsNFSFocused() {  ; checks whether nfs is not currently focused
-        if lastNFSFocused {
-            ReleaseHeldOutputsQuietly()  ; releases any held game output keys once
-        }
-
-        lastNFSFocused := false
-        return  ; prevents realmanual from reading or sending gameplay inputs
-    }
-
-    lastNFSFocused := true
-
-    if MaintainStalledState() {
-        return ; engine is stalled, so all normal transmission handling stays locked
-    }
-
-    HandlePaddleSync()
-
-    HandleHandbrake()
-
-    HandleSequentialBrakeHoldReset()
-
-    if HandleReverse() {
+    if scriptPaused || videoSettingsSequenceActive {
         return
     }
 
-    clutchPressed := IsClutchPressed()
+    nfsFocused := IsNFSFocused()
 
-    if transmissionIsSequential {
-        HandleSequentialTransmission(clutchPressed)
-    } else {
-        HandleHPatternTransmission(clutchPressed)
+    if nfsFocused != lastNFSFocused {
+
+        if nfsFocused {
+            MonitorNFSProcess()
+            SetMainLoopTimerInterval(scanIntervalMs)
+        } else {
+            ReleaseHeldOutputsQuietly()
+            DisarmEdgeInputs()
+            ClearStallDetectionState()
+            ClearSequentialBrakeHoldTimer()
+
+            SetMainLoopTimerInterval(mainLoopIdleIntervalMs)
+        } ; end focus-state branch
+
+        lastNFSFocused := nfsFocused
+    } ; end focus transition
+
+    if !nfsFocused {
+        return
     }
 
-    HandleStallDetection(clutchPressed) ; runs after first gear has been engaged on clutch release
-}
+    ; new NFSMW instance synchronization
+    if nfsInstanceResetPending {
+        nfsInstanceResetPending := false
+        ResetInputs(false, false) ; internal reset
+
+        return
+    } ; end new-instance reset
+
+    if MaintainStalledState() {
+        return
+    }
+
+    if paddleSyncConfigured {
+        HandlePaddleSync()
+    } ; end paddle-sync routing
+
+    if keyboardShiftSyncConfigured {
+        HandleKeyboardShiftSync()
+    } ; end keyboard-shift-sync routing
+
+    if analogHandbrakeConfigured || enableShifterHandbrake || handbrakeHeld {
+        HandleHandbrake()
+    } ; end handbrake routing
+
+    ; physical H-pattern snapshot
+    selectedGear := -2
+
+    if !transmissionIsSequential {
+        selectedGear := ReadSelectedGear()
+    } ; end H-pattern snapshot
+
+    ; pedal input snapshot
+    needsClutchSample := requireClutch || clutchActsAsNeutral || enableReverseAssist
+
+    if needsClutchSample {
+        clutchValue := ReadClutchAxis()
+        clutchPressed := IsClutchPressed(clutchValue)
+    } else {
+        clutchValue := 100
+        clutchPressed := false
+    } ; end clutch snapshot
+
+    stallLogicActive := enableStalling && (requireClutch || clutchActsAsNeutral)
+
+    stallNeedsCombinedPedalSample :=
+        stallLogicActive
+        && !stallSuppressedUntilShift
+        && (
+            brakeResetStallGraceActive
+            || lastSentGear = -1
+            || !clutchPressed
+        )
+
+    needsCombinedPedalSample :=
+        (!transmissionIsSequential && selectedGear = -1)
+        || (transmissionIsSequential && enableBrakeHoldGearReset)
+        || (enableReverseAssist && !clutchPressed)
+        || stallNeedsCombinedPedalSample
+
+    if needsCombinedPedalSample {
+        combinedPedalValue := ReadCombinedPedalAxis()
+    } else {
+        combinedPedalValue := combinedPedalCenter
+    } ; end combined pedal snapshot
+
+    if transmissionIsSequential {
+        if enableBrakeHoldGearReset {
+            HandleSequentialBrakeHoldReset(clutchPressed, combinedPedalValue)
+        } ; end sequential brake-reset routing
+
+        HandleSequentialTransmission(clutchPressed)
+
+        if enableReverseAssist || reverseAssistHeld {
+            HandleReverseAssist(clutchPressed, combinedPedalValue)
+        } ; end reverse-assist routing
+
+        if stallLogicActive {
+            HandleStallDetection(clutchPressed, clutchValue, combinedPedalValue)
+        } ; end stall-detection routing
+    } else {
+        HandleHPatternTransmission(clutchPressed, combinedPedalValue, selectedGear)
+
+        if enableReverseAssist || reverseAssistHeld {
+            HandleReverseAssist(clutchPressed, combinedPedalValue, selectedGear)
+        } ; end reverse-assist routing
+
+        if stallLogicActive {
+            HandleStallDetection(clutchPressed, clutchValue, combinedPedalValue, selectedGear)
+        } ; end stall-detection routing
+    }
+} ; end mainloop
 
 
-; =============================================================================
-; SECTION 21: STARTUP
-; =============================================================================
+; ==========================================================================================================================================================
+; SECTION 26: STARTUP
+; ==========================================================================================================================================================
 
-ShowStartupInfo() ; shows startup confirmation after config loads
-RegisterDynamicHotkeys() ; registers configurable hotkeys from config.ini
-SetTimer(MainLoop, scanIntervalMs) ; starts main scan loop
+OnExit(HandleScriptExit)
+
+InitializeStats()
+InitializeNFSProcessTracking()
+ApplyStatisticsStartupOptions()
+
+dynamicHotkeyRegistrationResults := RegisterDynamicHotkeys()
+ShowStartupInfo()
+SetTimer(MonitorNFSProcess, 1000)
+UpdateMainLoopSchedule()
 
 
-; =============================================================================
-; SECTION 22: HOTKEYS
-; =============================================================================
+; ==========================================================================================================================================================
+; SECTION 27: FIXED H-SHIFTER HOTKEYS
+; ==========================================================================================================================================================
 
-#HotIf IsNFSFocused()  ; makes the following hotkeys active only while nfs is focused
+#HotIf IsNFSFocused()
+$0::SyncGear(-1)
+$n::SyncGear(0)
 $1::SyncGear(1)
 $2::SyncGear(2)
 $3::SyncGear(3)
 $4::SyncGear(4)
 $5::SyncGear(5)
 $6::SyncGear(6)
-#HotIf  ; end focus-specific hotkey section
+#HotIf
