@@ -31,41 +31,49 @@
 ;------------------------------------------------------------------------------------------------------------------------------------------------------------
 ;
 ; SECTION 4: CONFIG LOADING - GENERAL AND HOTKEYS
-;   Config groups:
-;       [General]
-;       [Hotkeys]
+;   Variable groups:
+;       General Configuration
+;       General Controls
+;       Transmission Controls
+;       Clutch Controls
+;       Shifter-Handbrake Controls
+;       Stalling / Ignition Controls
+;       Stopwatch Controls
+;       Statistics Controls
+;       Utility / Capture Controls
 ;
 ;------------------------------------------------------------------------------------------------------------------------------------------------------------
 ;
 ; SECTION 5: CONFIG LOADING - TRANSMISSION AND CLUTCH
-;   Config groups:
-;       [Transmission]
-;       [Clutch]
+;   Variable groups:
+;       Transmission Configuration
+;       Clutch Configuration
 ;
 ;------------------------------------------------------------------------------------------------------------------------------------------------------------
 ;
 ; SECTION 6: CONFIG LOADING - PEDALS, GAME KEYS, AND H-PATTERN
-;   Config groups:
-;       [Pedals]
-;       [GameKeys]
-;       [HPattern]
+;   Variable groups:
+;       Combined Pedal Configuration
+;       NFSMW Game Keys
+;       H-Pattern Shifter Mappings
 ;
 ;------------------------------------------------------------------------------------------------------------------------------------------------------------
 ;
 ; SECTION 7: CONFIG LOADING - SEQUENTIAL, HANDBRAKE, STALLING, AND REVERSE ASSIST
-;   Config groups:
-;       [Sequential]
-;       [Handbrake]
-;       [Stalling]
-;       [ReverseAssist]
+;   Variable groups:
+;       Sequential Configuration
+;       Handbrake Configuration
+;       Stalling Configuration
+;       Reverse Assist Configuration
 ;
 ;------------------------------------------------------------------------------------------------------------------------------------------------------------
 ;
 ; SECTION 8: CONFIG LOADING - TIMING, STOPWATCH, AND STATISTICS
-;   Config groups:
-;       [Timing]
-;       [Stopwatch]
-;       [Statistics]
+;   Variable groups:
+;       Timing Configuration
+;       Internal Timing
+;       Stopwatch Configuration
+;       Statistics Configuration
 ;
 ;------------------------------------------------------------------------------------------------------------------------------------------------------------
 ;
@@ -5947,7 +5955,7 @@ MonitorNFSProcess() {
         return
     } ; end first-instance branch
 
-    ; Game Returned After Previous Instance Disappeared
+    ; Game returned after previous instance disappeared
     if nfsProcessPid = 0 {
         SynchronizeStatsSession(currentPid)
 
@@ -5957,7 +5965,7 @@ MonitorNFSProcess() {
         return
     } ; end replacement-after-exit branch
 
-    ; PID Changed Without Observing an Empty Interval
+    ; PID changed without observing an empty interval
     if currentPid != nfsProcessPid {
         SynchronizeStatsSession(currentPid)
 
