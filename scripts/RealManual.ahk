@@ -24,6 +24,7 @@
 ;       ConfigRuleKey()
 ;       TryParseConfigInt()
 ;       TryParseConfigBool()
+;       ReadConfigValue()
 ;       ReadBool()
 ;       ReadInt()
 ;       ReadText()
@@ -141,6 +142,7 @@
 ;   Transmission / control readers:
 ;       ReadClutchAxis()
 ;       ReadCombinedPedalAxis()
+;       ReadHandbrakeAxis()
 ;       IsClutchPressed()
 ;       ReadSelectedGear()
 ;       IsBrakeAxisPastThreshold()
@@ -440,10 +442,13 @@ booleanConfigRules := Map(
 
     ConfigRuleKey("Transmission", "StartInSequentialMode"), true,
     ConfigRuleKey("Sequential", "InvertSequentialShifter"), true,
+
+    ConfigRuleKey("Clutch", "ClutchAxisIncreasesWhenPressed"), true,
     ConfigRuleKey("Clutch", "RequireClutch"), true,
     ConfigRuleKey("Clutch", "ClutchActsAsNeutral"), true,
 
     ConfigRuleKey("Handbrake", "EnableShifterHandbrake"), true,
+    ConfigRuleKey("Handbrake", "HandbrakeAxisIncreasesWhenPulled"), true,
 
     ConfigRuleKey("Sequential", "EnableBrakeHoldGearReset"), true,
     ConfigRuleKey("Pedals", "BrakeAxisIncreasesWhenPressed"), true,
@@ -499,16 +504,39 @@ TryParseConfigBool(rawValue, &parsedValue) {
 } ; end tryparseconfigbool
 
 ; ==========================================================================================================================================================
+; ReadConfigValue(section, key, fallback)
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
+; Reads one config.ini value and removes an optional inline comment.
+;
+; Inline comments must begin with whitespace followed by a semicolon:
+;
+;   Setting=Value ; comment
+;
+; A semicolon that is part of the value is preserved:
+;
+;   SomeKey=;
+;   SomeKey=; ; semicolon key
+;
+; Leading and trailing whitespace is removed from the resulting value.
+; ==========================================================================================================================================================
+ReadConfigValue(section, key, fallback := "") {
+    global configFile
+
+    rawValue := IniRead(configFile, section, key, fallback)
+
+    return Trim(RegExReplace(rawValue, "\s+;.*$"))
+} ; end readconfigvalue
+
+; ==========================================================================================================================================================
 ; ReadBool(section, key, fallback)
 ; ----------------------------------------------------------------------------------------------------------------------------------------------------------
 ; Reads a boolean option from config.ini.
 ;
-; Missing, blank, or malformed values return the supplied fallback.
+; Missing, blank, malformed, or commented values safely return either the
+; configured boolean or the supplied fallback.
 ; ==========================================================================================================================================================
 ReadBool(section, key, fallback) {
-    global configFile
-
-    rawValue := IniRead(configFile, section, key, "")
+    rawValue := ReadConfigValue(section, key)
 
     if TryParseConfigBool(rawValue, &parsedValue) {
         return parsedValue
@@ -525,10 +553,10 @@ ReadBool(section, key, fallback) {
 ;
 ; Invalid syntax, missing values, or out-of-range values return fallback.
 ;
-; BuildValidationText() separately reports the original invalid config value
+; BuildValidationText() separately reports the original configured value.
 ; ==========================================================================================================================================================
 ReadInt(section, key, fallback) {
-    global configFile, numericConfigRules
+    global numericConfigRules
 
     ruleKey := ConfigRuleKey(section, key)
 
@@ -537,7 +565,7 @@ ReadInt(section, key, fallback) {
         return fallback
     } ; end missing numeric rule guard
 
-    rawValue := IniRead(configFile, section, key, "")
+    rawValue := ReadConfigValue(section, key)
 
     if !TryParseConfigInt(rawValue, &parsedValue) {
         return fallback
@@ -571,9 +599,7 @@ ReadInt(section, key, fallback) {
 ; When no fallback is supplied, a missing setting also returns an empty string.
 ; ==========================================================================================================================================================
 ReadText(section, key, fallback := "") {
-    global configFile
-
-    return IniRead(configFile, section, key, fallback)
+    return ReadConfigValue(section, key, fallback)
 } ; end readtext
 
 
@@ -638,6 +664,7 @@ maxForwardGear := ReadInt("Transmission", "MaxForwardGear", 6)
 requireClutch := ReadBool("Clutch", "RequireClutch", true)
 clutchActsAsNeutral := ReadBool("Clutch", "ClutchActsAsNeutral", true)
 clutchAxis := ReadText("Clutch", "ClutchAxis")
+clutchAxisIncreasesWhenPressed := ReadBool("Clutch", "ClutchAxisIncreasesWhenPressed", false)
 clutchThreshold := ReadInt("Clutch", "ClutchThreshold", 40)
 
 
@@ -685,6 +712,7 @@ queuedShiftDelayMs := ReadInt("Sequential", "QueuedShiftDelayMs", 35)
 
 ; Handbrake Configuration
 handbrakeAxis := ReadText("Handbrake", "HandbrakeAxis")
+handbrakeAxisIncreasesWhenPulled := ReadBool("Handbrake", "HandbrakeAxisIncreasesWhenPulled", true)
 handbrakeThreshold := ReadInt("Handbrake", "HandbrakeThreshold", 20)
 enableShifterHandbrake := ReadBool("Handbrake", "EnableShifterHandbrake", false)
 shifterHandbrakeButton := ReadText("Handbrake", "ShifterHandbrakeButton")
@@ -1439,18 +1467,29 @@ SafeGetKeyState(inputName, fallback := false) {
 ; ==========================================================================================================================================================
 ; ReadClutchAxis()
 ; ----------------------------------------------------------------------------------------------------------------------------------------------------------
-; Reads the current raw clutch-axis position.
+; Reads and normalizes the configured clutch axis.
 ;
-; For the tested Logitech setup:
+; Returns:
 ;   0   = fully pressed
 ;   100 = fully released
+;
+; ClutchAxisIncreasesWhenPressed allows either physical axis direction to use
+; the same internal clutch convention.
 ;
 ; An unavailable clutch axis safely reports fully released.
 ; ==========================================================================================================================================================
 ReadClutchAxis() {
     global clutchAxis
+    global clutchAxisIncreasesWhenPressed
 
-    return SafeGetKeyState(clutchAxis, 100)
+    fallback := clutchAxisIncreasesWhenPressed ? 0 : 100
+    clutchValue := SafeGetKeyState(clutchAxis, fallback)
+
+    if clutchAxisIncreasesWhenPressed {
+        clutchValue := 100 - clutchValue
+    } ; end axis normalization
+
+    return Max(0, Min(100, clutchValue))
 } ; end readclutchaxis
 
 ; ==========================================================================================================================================================
@@ -1473,13 +1512,44 @@ ReadCombinedPedalAxis() {
 } ; end readcombinedpedalaxis
 
 ; ==========================================================================================================================================================
+; ReadHandbrakeAxis()
+; ----------------------------------------------------------------------------------------------------------------------------------------------------------
+; Reads and normalizes the configured analog handbrake axis.
+;
+; Returns:
+;   0   = fully released
+;   100 = fully pulled
+;
+; HandbrakeAxisIncreasesWhenPulled allows either physical axis direction to use
+; the same internal handbrake convention.
+;
+; An unavailable handbrake axis safely reports fully released.
+; ==========================================================================================================================================================
+ReadHandbrakeAxis() {
+    global handbrakeAxis
+    global handbrakeAxisIncreasesWhenPulled
+
+    fallback := handbrakeAxisIncreasesWhenPulled ? 0 : 100
+    handbrakeValue := SafeGetKeyState(handbrakeAxis, fallback)
+
+    if !handbrakeAxisIncreasesWhenPulled {
+        handbrakeValue := 100 - handbrakeValue
+    } ; end axis normalization
+
+    return Max(0, Min(100, handbrakeValue))
+} ; end readhandbrakeaxis
+
+; ==========================================================================================================================================================
 ; IsClutchPressed(clutchValue)
 ; ----------------------------------------------------------------------------------------------------------------------------------------------------------
-; Determines whether a previously read clutch-axis value represents a pressed clutch.
+; Determines whether a previously normalized clutch-axis value represents a
+; pressed clutch.
 ;
-; For the tested Logitech setup, clutch value decreases when pressed.
+; Normalized clutch convention:
+;   0   = fully pressed
+;   100 = fully released
 ;
-; Clutch pressed if clutchValue < clutchThreshold
+; Clutch pressed if clutchValue < clutchThreshold.
 ; ==========================================================================================================================================================
 IsClutchPressed(clutchValue) {
     global clutchThreshold
@@ -1632,25 +1702,25 @@ IsShifterHandbrakeActive() {
 ; ==========================================================================================================================================================
 ; IsAnalogHandbrakeActive()
 ; ----------------------------------------------------------------------------------------------------------------------------------------------------------
-; Reads the optional physical handbrake axis.
+; Determines whether the normalized analog handbrake position is past the
+; configured activation threshold.
 ;
 ; Allows physical handbrake and shifter handbrake to coexist.
 ;
 ; Returns:
 ;   true  = analog handbrake is pulled past threshold
-;   false = analog handbrake is released, blank, invalid, or disconnected
+;   false = analog handbrake is released, invalid, or disconnected
 ; ==========================================================================================================================================================
 IsAnalogHandbrakeActive() {
-    global handbrakeAxis
     global handbrakeThreshold
 
-    return SafeGetKeyState(handbrakeAxis, 0) > handbrakeThreshold
+    return ReadHandbrakeAxis() > handbrakeThreshold
 } ; end isanaloghandbrakeactive
 
 ; ==========================================================================================================================================================
 ; ReadClutchReleasePercent(clutchValue)
 ; ----------------------------------------------------------------------------------------------------------------------------------------------------------
-; Returns the clutch release position from a previously read raw clutch value:
+; Returns the release percentage from a previously normalized clutch-axis value:
 ;   0   = fully pressed
 ;   100 = fully released
 ; ==========================================================================================================================================================
@@ -2023,6 +2093,7 @@ BuildValidationText() {
         ["Clutch", "RequireClutch"],
         ["Clutch", "ClutchActsAsNeutral"],
         ["Clutch", "ClutchAxis"],
+        ["Clutch", "ClutchAxisIncreasesWhenPressed"],
         ["Clutch", "ClutchThreshold"],
 
         ; NFSMW game-key bindings
@@ -2043,6 +2114,7 @@ BuildValidationText() {
 
         ; Handbrake
         ["Handbrake", "HandbrakeAxis"],
+        ["Handbrake", "HandbrakeAxisIncreasesWhenPulled"],
         ["Handbrake", "HandbrakeThreshold"],
         ["Handbrake", "EnableShifterHandbrake"],
         ["Handbrake", "ShifterHandbrakeButton"],
@@ -2095,7 +2167,7 @@ BuildValidationText() {
             key := check[2]
 
             ruleKey := ConfigRuleKey(section, key)
-            rawValue := IniRead(configFile, section, key, missingSentinel)
+            rawValue := ReadConfigValue(section, key, missingSentinel)
 
             ; Missing / Blank
             if rawValue = missingSentinel || Trim(rawValue) = "" {
@@ -3498,7 +3570,7 @@ LapStopwatch(*) {
     global stopwatchStarted, stopwatchRunning
     global stopwatchStartTime
     global stopwatchAccumulatedMs, stopwatchRefreshMs
-    global stopwatchLaps, stopwatchMaxLines, 
+    global stopwatchLaps, stopwatchMaxLines
 
     if !stopwatchStarted {
         return
