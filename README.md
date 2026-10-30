@@ -1,307 +1,441 @@
 # RealManual
 
-RealManual is an AutoHotkey v2 transmission and input bridge for **Need for Speed: Most Wanted (2005)**. It adds physical H-pattern and sequential shifting, clutch behavior, handbrakes, manual synchronization, reverse assistance, simulated stalling, statistics, a stopwatch, and several quality-of-life utilities that the original game does not provide natively.
+**RealManual** is an AutoHotkey v2 transmission and controller-input bridge for **Need for Speed: Most Wanted (2005)**. Together with [MW2005-HShifter](https://github.com/Eradinelle/MW2005-HShifter), it adds direct H-pattern gear selection, sequential shifting, clutch simulation, an optional engine-stall/restart model, handbrake handling, gear synchronization, statistics, a stopwatch, and configurable utilities.
 
-RealManual reads controller state through the Windows joystick interface and works together with **MW2005-HShifter** to provide direct reverse, neutral, and forward-gear selection.
+**Version:** 1.3.0  
+**Target game:** NFSMW 2005 v1.3 Black Edition, using a compatible MW2005-HShifter ASI build.  
+**Supported RealManual profiles:** **SimRig** (H-pattern or sequential) and **Gamepad** (sequential only).
 
-> **Current version:** 1.2.0
->
-> **Game compatibility:** MW2005-HShifter currently targets **Need for Speed: Most Wanted 1.3 Black Edition**.
->
-> **Primary tested hardware:** Logitech G29 wheel, pedals and H-pattern shifter using Logitech Gaming Software (LGS), plus a separate USB handbrake. Need for Speed: Most Wanted (2005) relies on DirectInput-compatible controller input. RealManual itself reads controller state through AutoHotkey's joystick interface, which depends on Windows correctly enumerating the device.
+RealManual reads controllers through the Windows joystick interface. It **does not replace NFSMW's ordinary driving controls**: steering, acceleration, braking, NOS, Speedbreaker, pause and native paddle shifting must still reach the game through its own control bindings. RealManual handles the supplemental transmission and simulation logic.
 
-See [`CHANGELOG.md`](CHANGELOG.md) for the complete 1.2.0 change history.
+The two configurations actually tested during development are:
+
+- **SimRig:** Logitech G29 + H-shifter + clutch + USB Arduino Leonardo handbrake, with **separate throttle and brake pedals**, Logitech Gaming Software (LGS), **Joystick Gremlin R16 + vJoy 2.1.9.1**, and HidHide. The combined-pedal G29 configuration remains available.
+- **Gamepad:** DualShock 4 through **DS4Windows virtual DualShock 4 output**, with HidHide preventing duplicate physical-controller input; analog L2 clutch, R2 throttle, right-stick-down brake, R1/L1 shifts, and right-stick-up ignition.
+
+For changes since 1.2.0, see [CHANGELOG.md](CHANGELOG.md).
 
 ---
 
 ## Requirements
 
-- Windows 10 or Windows 11
-- Need for Speed: Most Wanted (2005), version 1.3 Black Edition
-- AutoHotkey v2
-- An ASI loader capable of loading `.asi` plugins from the NFSMW game directory or `scripts` directory
-- MW2005-HShifter, preferably the build included with the RealManual release
-- A wheel, pedals, shifter, handbrake (optional), or other controller hardware that is visible through the Windows joystick interface
+### RealManual itself
 
-RealManual does not replace the game's normal steering, accelerator, brake, menu, camera, nitrous, speedbreaker, or other ordinary controls. Those still need to be configured inside NFSMW itself.
+- Windows 10 or 11 and [AutoHotkey v2](https://www.autohotkey.com/).
+- **Need for Speed: Most Wanted (2005), v1.3 Black Edition**, with a functioning ASI loader.
+- [MW2005-HShifter](https://github.com/Eradinelle/MW2005-HShifter), preferably the matching `.asi` included with the RealManual release.
+- A controller exposed to the Windows joystick APIs and verified with `joy.cpl` / the RealManual Input Detector.
+
+### Optional software by hardware path
+
+| Setup | Software | Reason |
+| --- | --- | --- |
+| G29, **combined pedals** | Logitech Gaming Software (LGS) | Original single centered throttle/brake axis; no virtual joystick required if NFSMW recognizes the wheel. |
+| G29, **independent pedals** — tested | **LGS**, [vJoy](https://github.com/jshafer817/vJoy), [Joystick Gremlin](https://whitemagic.github.io/JoystickGremlin/), [HidHide](https://github.com/nefarius/HidHide) | Preserve three independent physical pedals; present a game-compatible virtual joystick while RealManual reads the physical G29. |
+| DualShock 4 — tested | **DS4Windows**, its matching virtual-controller backend, **HidHide** | Create a single virtual DualShock 4 with independent analog inputs and hide duplicate physical input. |
+
+**Software distinction:** vJoy and HidHide install drivers that function without their configuration windows. **Joystick Gremlin must remain running with its profile active** to feed vJoy; **DS4Windows must remain running** when it is supplying the gamepad's virtual controller. RealManual must remain running for its own functions.
 
 ---
 
 ## Installation
 
-1. Install **AutoHotkey v2** if it is not already installed.
-   - https://www.autohotkey.com/
-
-2. Make sure your NFSMW installation has a working ASI loader.
-   - If other `.asi` mods already load correctly from your game directory or `scripts` directory, this requirement is already satisfied.
-
-3. Download the latest RealManual release.
-
-4. Copy the included `scripts` folder into the main Need for Speed: Most Wanted directory and allow it to merge with any existing `scripts` folder.
-
-   The resulting layout should contain files similar to:
+1. Install AutoHotkey v2.
+2. Install an ASI loader and verify that `.asi` mods load in NFSMW.
+3. Download the RealManual release and place the provided files in your NFSMW installation. A typical layout is:
 
    ```text
    Need for Speed Most Wanted/
    └── scripts/
        ├── RealManual.ahk
+       ├── RealManual.ini
        ├── RealManual_InputDetector.ahk
-       ├── config.ini
+       ├── RealManual_DeviceIdentity_Probe.ahk
        └── MW2005-HShifter.asi
    ```
 
-   RealManual may also create:
+   The RealManual.ahk can live and be launched from anywhere, as long as its config is in its directory. H-Shifter.asi has to be in the NFSMW scripts folder.
+4. Keep `RealManual.ini` **beside `RealManual.ahk`**. Choose a controller setup below, then edit its mappings.
+5. Start RealManual before or after NFSMW; it monitors the `speed.exe` process and applies its input handling while the game has focus.
 
-   ```text
-   startup_log.txt   # when WriteStartupLog=1
-   stats.txt         # persistent session/all-time statistics
-   ```
+If enabled, `startup_log.txt` and `stats.txt` are written alongside RealManual. `RealManual_InputDetector.ahk` and `RealManual_DeviceIdentity_Probe.ahk` are standalone, read-only diagnostic utilities.
 
-5. Configure `config.ini` for your hardware and preferences. See [Configuration](#configuration).
+### MW2005-HShifter direct-gear protocol
 
-6. Run `RealManual.ahk`.
+The H-shifter ASI uses fixed keyboard commands:
 
-   Starting RealManual before NFSMW is still the simplest workflow, but 1.2.0 can also attach to an already-running `speed.exe` process.
+| Key | Direct gear |
+| --- | --- |
+| `0` | Reverse |
+| `N` | Neutral |
+| `1`–`6` | Forward gears 1–6 |
 
-7. Start Need for Speed: Most Wanted normally if it is not already running.
-
-RealManual only processes gameplay inputs while `speed.exe` is the active foreground application. When NFSMW is unfocused, RealManual reduces its polling rate; while RealManual is paused or its menu automation is active, the normal gameplay polling timer is stopped.
-
-### MW2005-HShifter
-
-RealManual uses a modified build of MW2005-HShifter maintained here:
-
-https://github.com/Eradinelle/MW2005-HShifter
-
-The RealManual release should be used with the version of `MW2005-HShifter.asi` included in that release. The original mod can also provide the direct-gear protocol, but the RealManual-maintained build is the version this project is developed and tested against.
+RealManual reserves these keys and checks configurable bindings for conflicts. Its fixed synchronization keys also let you manually re-establish the tracked gear. Do not bind gameplay functions to these reserved keys.
 
 ---
 
-## Configuration
+## Controller profiles and device detection
 
-RealManual reads its settings from `config.ini`, which must remain in the same directory as `RealManual.ahk`.
+RealManual v1.3.0 separates shared settings from the two supported profiles:
 
-Boolean settings use:
+- `[General]`, `[Hotkeys]`, `[GameKeys]`, `[Timing]`, `[Stopwatch]`, `[Statistics]`: common behavior and keyboard output.
+- `[Profiles]`, `[JoystickDevices]`: profile preference, manual switching and controller discovery.
+- `[Profile.SimRig.*]`: G29-style clutch, H-pattern/sequential, pedals, handbrake, stalling and Reverse Assist.
+- `[Profile.Gamepad.*]`: sequential Gamepad actions, calibration, hysteresis (for axis-to-button mappings and vice-versa) and stalling.
 
-```text
-0 = disabled / false
-1 = enabled / true
-```
-
-Hotkeys can use normal AutoHotkey v2 modifiers:
-
-```text
-^ = Ctrl
-+ = Shift
-! = Alt
-# = Win
-```
-
-Leave a configurable hotkey value blank to disable that hotkey.
-
-### 1. Verify the hardware in Windows first
-
-Before editing RealManual mappings:
-
-1. Press `Win + R`.
-2. Enter: `joy.cpl`
-3. Select the wheel/controller and open **Properties**.
-4. Confirm that the wheel, pedals, shifter buttons, paddles, and other required controls produce visible input.
-
-If the device is missing from `joy.cpl`, or the Properties/Test page is blank or does not react, fix the Windows driver/enumeration problem before configuring RealManual. See [Troubleshooting](#troubleshooting).
-
-### 2. Run the RealManual Input Detector
-
-Run:
-
-```text
-RealManual_InputDetector.ahk
-```
-
-The detector scans the Windows joystick slots and displays each detected device, its axes, and currently pressed buttons.
-
-Typical names look like:
-
-```text
-1JoyX
-1JoyY
-1JoyZ
-1JoyR
-1Joy13
-1Joy19
-2JoyR
-```
-
-The number before `Joy` is the Windows/AutoHotkey joystick number. The suffix identifies an axis or button.
-
-Move or press **one control at a time** and watch which value changes.
-
-For example:
-
-```text
-Clutch pedal     -> 1JoyY
-First gear       -> 1Joy13
-Second gear      -> 1Joy14
-Reverse gate     -> 1Joy19
-USB handbrake    -> 2JoyR
-```
-
-The detector supports joystick slots 1-16 and scans buttons 1-32. `F9` reloads the detector and `Esc` closes it.
-
-### 3. Understand the configuration sections
-
-RealManual 1.2.0 uses the following sections:
-
-| Section | Purpose |
-| --- | --- |
-| `[General]` | Startup log and tooltip behavior |
-| `[Hotkeys]` | Runtime controls, stopwatch/statistics controls, menu/capture utilities |
-| `[Transmission]` | Startup transmission mode and 5/6-speed limit |
-| `[Clutch]` | Clutch behavior, axis and threshold |
-| `[Pedals]` | Shared gas/brake axis and brake-direction thresholds |
-| `[GameKeys]` | Keyboard actions configured inside NFSMW |
-| `[HPattern]` | Physical 1-6 and reverse shifter positions |
-| `[Sequential]` | Sequential lever, paddles, brake reset and queued-shift timing |
-| `[Handbrake]` | Analog handbrake and optional sequential shifter-slot handbrake |
-| `[Stalling]` | Simulated engine stall/restart behavior |
-| `[ReverseAssist]` | Optional digital reverse-key assistance |
-| `[Timing]` | Normal key hold and focused polling interval |
-| `[Stopwatch]` | Stopwatch refresh and line limit |
-| `[Statistics]` | Persistent shift/stall/race-restart tracking |
-
-### 4. Configure the important hardware mappings
-
-Use the identifiers reported by the Input Detector.
-
-| Config setting | Section | Purpose |
-| --- | --- | --- |
-| `ClutchAxis` | `[Clutch]` | Physical clutch pedal axis |
-| `CombinedPedalAxis` | `[Pedals]` | Shared gas/brake axis used by brake reset, Reverse Assist, and stall logic |
-| `HandbrakeAxis` | `[Handbrake]` | Optional analog USB handbrake axis |
-| `Gear1Button` through `Gear6Button` | `[HPattern]` | Physical H-pattern forward gears |
-| `ReverseButton` | `[HPattern]` | Physical reverse gate |
-| `SequentialUpshiftButton` | `[Sequential]` | Sequential upshift shifter position |
-| `SequentialDownshiftButton` | `[Sequential]` | Sequential downshift shifter position |
-| `PaddleUpshiftButton` | `[Sequential]` | Native paddle upshift used for tracked-gear synchronization |
-| `PaddleDownshiftButton` | `[Sequential]` | Native paddle downshift used for tracked-gear synchronization |
-| `ShifterHandbrakeButton` | `[Handbrake]` | Optional H-shifter slot used as handbrake in sequential mode |
-| `ForwardKey` | `[GameKeys]` | NFSMW accelerate/forward keyboard binding |
-| `ReverseKey` | `[GameKeys]` | NFSMW brake/reverse keyboard binding used by Reverse Assist |
-| `HandbrakeKey` | `[GameKeys]` | NFSMW handbrake keyboard binding |
-| `ShiftUpKey` | `[GameKeys]` | NFSMW sequential upshift key and physical-key synchronization source |
-| `ShiftDownKey` | `[GameKeys]` | NFSMW sequential downshift key and physical-key synchronization source |
-
-### 5. Reserved MW2005-HShifter protocol keys
-
-RealManual and MW2005-HShifter reserve these physical keyboard keys:
-
-```text
-0   = reverse
-N   = neutral
-1-6 = forward gears
-```
-
-These are fixed protocol bindings.
-
-RealManual 1.2.0 checks configured bindings at startup. Conflicting bindings are blocked/disabled and reported in `startup_log.txt`.
-
-The fixed protocol keys can also be used for RealManual's manual direct-gear synchronization:
-
-```text
-0   -> reverse
-N   -> neutral
-1-6 -> corresponding forward gear
-```
-
-### Expected pedal direction
-
-RealManual's default/tested logic expects:
-
-| Input | Released/resting | Activated |
-| --- | ---: | ---: |
-| Clutch | high, near 100 | low, near 0 |
-| Analog handbrake | low | high |
-| Combined gas/brake axis | near center | gas moves one direction, brake moves the opposite direction |
-
-The direction of the **brake** side of the combined axis is configurable through `BrakeAxisIncreasesWhenPressed`.
-
-### Tested axis configuration
-
-The primary tested setup is a Logitech G29 using Logitech Gaming Software (LGS), with **combined gas/brake pedals enabled**, plus a separate USB handbrake.
-
-- **Gas**
-  - Axis: `1JoyZ`
-  - Resting value: around `50`
-  - Pressing the gas makes the value **decrease toward 0**
-
-- **Brake**
-  - Axis: `1JoyZ`
-  - Resting value: around `50`
-  - Pressing the brake makes the value **increase toward 100**
-
-- **Clutch**
-  - Axis: `1JoyY`
-  - Released value: around `100`
-  - Pressing the clutch makes the value **decrease toward 0**
-
-- **USB handbrake**
-  - Axis: `2JoyR`
-  - Released value: around `0`
-  - Pulling the handbrake makes the value **increase toward 100**
-
-In this configuration, gas and brake share the same centered axis.
-
-Relevant 1.2.0 settings:
+### Automatic profile selection
 
 ```ini
-[Clutch]
-ClutchAxis=1JoyY
+[Profiles]
+ActiveProfile=1          ; 0 = Gamepad, 1 = SimRig
+ToggleProfileButton=^F12
+
+[JoystickDevices]
+AutoEnumerateDevices=1  ; 1 = exact hardware IDs, 0 = manual slots
+GamepadHardwareId=VID_054C&PID_05C4
+WheelHardwareId=VID_046D&PID_C24F
+HandbrakeHardwareId=VID_2341&PID_8036
+```
+
+The IDs above are **verified for MY setup**, not universal defaults. `GamepadHardwareId` refers to the tested **virtual** DualShock 4. The physical second-generation DS4 can instead report `VID_054C&PID_09CC`; do not confuse it with the intended virtual input. Use the **VID** obtained from `RealManual_DeviceIdentity_Probe.ahk`.
+
+When `AutoEnumerateDevices=1`, RealManual checks responding Windows joystick slots **1–16**, matches the configured VID/PID to a live device, and resolves logical bindings such as `Wheel:JoyY` to the correct current slot. It requires an **unambiguous** match; two identical devices with the same VID/PID cannot be uniquely distinguished by this method. Generic `JoyName` strings are not used as hardware identity because different controllers may share the name `Microsoft PC-joystick driver`.
+
+Automatic selection follows the connected **primary controllers** (Wheel and Gamepad), not the optional handbrake:
+
+| Connected primary controllers | Active RealManual profile |
+| --- | --- |
+| Only wheel | SimRig, regardless of preference |
+| Only Gamepad | Gamepad, regardless of preference |
+| Both | Use `ActiveProfile` as the preference |
+| Neither | Refuse startup |
+
+**On every new `speed.exe` process**, RealManual resets the session's transmission/input state and refreshes the active controller/profile. `Ctrl+F12` requests a manual switch **of RealManual's input profile only**, subject to target-device availability and clutch/queued-shift safety checks. Within a running game, this preserves tracked gear and simulated engine state. A new game PID instead triggers fresh-session reset.
+
+**NFSMW seems to only be able to detect 1 external controller per launch (Wireless controller through DS4Windows/G29/vJoy) and it seems to favor the G29 first and vJoy last (if you HidHide the handbrake, letting RealManual send the handbrake key. Otherwise it will detect the handbrake before vJoy). Switching profiles with the Gamepad and SimRig both connected will not change what NFSMW currently sees. You will still need to relaunch the game and disconnect the SimRig before launching if switching to a Gamepad. Autoenumeration handles the active connected device automatically. NFSMW also seems to only save 1 external device controls at a time. Changing devices will require you to remap controls within NFSMW. Do not map Up/Down shifts for the Gamepad in NFSMW. Those are handled by RealManual.**
+
+For fixed manual assignments, set `AutoEnumerateDevices=0` and fill `GamepadSlot`, `WheelSlot` and `HandbrakeSlot` with their current 1–16 joystick numbers. In automatic mode those slot fields are ignored. **Those numbers may change on disconnect/reconnect/PC restart. Verify with `RealManual_InputDetector.ahk`**
+
+### Identify controller hardware IDs with the bundled probe
+
+Use **`scripts/RealManual_DeviceIdentity_Probe.ahk`** when first setting up automatic enumeration, changing drivers or virtual-controller software, or investigating a controller mismatch. Unlike the ordinary Input Detector, this read-only AutoHotkey v2 diagnostic reports device identity **and its verified current AHK joystick slot**.
+
+1. Connect or start the controllers you want RealManual to identify (for example, the physical G29, Arduino handbrake and a DS4Windows **virtual** DualShock 4). If HidHide is enabled, run the probe with an allowlisted AutoHotkey executable so it can see the hidden physical devices.
+2. Run `RealManual_DeviceIdentity_Probe.ahk`, then click **Refresh** after changing connections. It enumerates the responding `1Joy`–`16Joy` slots and uses DirectInput's joystick-ID association to correlate device names to slots rather than trusting enumeration list order.
+3. In each **`--- AHK SLOT N ---`** block, look for **`IDENTITY: DIRECTINPUT SLOT-MATCHED`** and read the **`DirectInput VID/PID`** and **`OEM registry identifier`** fields. These should agree in the verified setups; use the `VID_XXXX&PID_YYYY` value, **not** the generic `AHK JoyName` (`Microsoft PC-joystick driver` may appear for every device). If an identity is unresolved or ambiguous, investigate before assigning a role.
+4. Copy those IDs into `[JoystickDevices]` in **`scripts/RealManual.ini`**: physical wheel → `WheelHardwareId`, physical USB handbrake → `HandbrakeHardwareId`, intended **virtual DS4** → `GamepadHardwareId`. Save and reload RealManual; check its startup report/log for the resolved roles.
+5. To inspect a binding *within* one controller (axis direction, shifter button number), use `RealManual_InputDetector.ahk` separately. Device IDs and joystick slot numbers serve different purposes.
+
+Example excerpts from the **tested** hardware (other revisions/devices can differ):
+
+```text
+AHK SLOT 1 — Logitech G29 Driving Force Racing Wheel USB
+  DirectInput VID/PID: VID_046D&PID_C24F    -> WheelHardwareId
+AHK SLOT 3 — Arduino Leonardo USB handbrake
+  DirectInput VID/PID: VID_2341&PID_8036    -> HandbrakeHardwareId
+AHK SLOT 4 — virtual Wireless Controller (DS4-compatible)
+  DirectInput VID/PID: VID_054C&PID_05C4    -> GamepadHardwareId
+```
+
+The **slot numbers are illustrative and can change**. In automatic mode RealManual uses the hardware IDs, not the example numbers.
+
+### Important: RealManual profile selection is not NFSMW controller selection
+
+| Situation | RealManual behavior | What NFSMW does / recommended action |
+| --- | --- | --- |
+| `AutoEnumerateDevices=1`, only Gamepad primary connected | Selects Gamepad, ignoring `ActiveProfile` | Launch/relaunch with the intended Gamepad controller as the only game-visible driving device. |
+| `AutoEnumerateDevices=1`, only wheel primary connected | Selects SimRig, ignoring `ActiveProfile` | Launch/relaunch with the intended wheel or SimRig vJoy output as the only game-visible driving device. |
+| `AutoEnumerateDevices=1`, **both** primary controllers connected | Uses configured `ActiveProfile` | **Does not compel NFSMW to use that device**; on my setup NFSMW is likely to keep the SimRig/wheel-side controller. Isolate the desired game-visible device and relaunch. |
+| `AutoEnumerateDevices=0` | Uses the configured profile and manual slot bindings | `Ctrl+F12` can switch RealManual profiles if both role assignments are available; **NFSMW still needs the appropriate device selected at launch**. |
+
+**Recommended everyday workflow with auto enumeration (tested practical approach):**
+
+1. **Exit NFSMW completely** before changing between SimRig and Gamepad. Switching RealManual while the game remains open does not replace NFSMW's chosen controller.
+2. Stop/disconnect or hide the *unwanted game-visible driving device*, and make the new controller available. For Gamepad, enable the intended DS4Windows virtual DS4 and prevent the SimRig wheel/**vJoy** device from competing; disconnecting the physical wheel alone may **not** remove vJoy, since vJoy is a separate installed virtual device. For SimRig, activate Joystick Gremlin/vJoy and avoid competing DS4Windows virtual outputs. Check ordinary, non-allowlisted `joy.cpl` if uncertain.
+3. **Relaunch NFSMW.** RealManual detects the new `speed.exe` PID, resets its game-session state, and in auto mode selects the sole detected primary controller (or your `ActiveProfile` preference if both still appear to RealManual). Confirm NFSMW's native bindings and rebind/save them if necessary.
+
+In this tested one-game-controller-at-a-time workflow, **Ctrl+F12 is generally unnecessary with `AutoEnumerateDevices=1`**, because process relaunch refreshes the profile automatically. The manual switch hotkey is most useful when using `AutoEnumerateDevices=0` or on hardware/game installations that demonstrably support both native devices at once. RealManual may legitimately see hidden physical devices through HidHide's allowlist even though the game sees only the chosen virtual controller.
+
+### Hardware verification
+
+1. Open `Win + R` → `joy.cpl` → **Properties → Test** to establish that Windows receives input.
+2. Run `RealManual_InputDetector.ahk`; move one axis/button at a time to find its AutoHotkey binding (`1JoyY`, `3JoyR`, etc.).
+3. Run the bundled **`RealManual_DeviceIdentity_Probe.ahk`** to identify each controller's exact VID/PID for automatic enumeration as described above. Windows joystick numbers can change after a reconnect or driver change.
+4. If HidHide is enabled, an allowlisted AutoHotkey process can see hidden devices even if normal `joy.cpl` only lists the game-visible virtual controller. This is expected.
+
+---
+
+## Setup A — SimRig with Logitech G29
+
+The SimRig profile supports H-pattern and sequential transmissions, a physical clutch, paddle tracking, a separate USB handbrake, optional Reverse Assist and simulated stalling. The setup below describes both combined pedals and the newly **tested independent-pedal setup**.
+
+### A1. Original combined-pedal configuration
+
+This path remains useful if NFSMW recognizes the G29 directly and separate-pedal support isn't needed.
+
+In LGS, enable **Combined Pedals** for the profile NFSMW will use. The tested G29 then exposes a shared throttle/brake axis near **50 at rest**, decreasing toward 0 on throttle and increasing toward 100 on brake. The clutch remains independent and decreases from 100 released toward 0 pressed **this is how it worked on my setup, verify for yours**.
+
+```ini
+[Profile.SimRig.Pedals]
+UseCombinedPedals=1
+CombinedPedalAxis=Wheel:JoyZ
+BrakeAxisIncreasesWhenPressed=1
+ThrottleAxis=
+BrakeAxis=
+ThrottleAxisIncreasesWhenPressed=0
+BrakeActivePercent=10
+```
+
+With `UseCombinedPedals=1`, separate throttle/brake fields are unused.
+
+### A2. Independent pedals — tested with LGS + Joystick Gremlin + vJoy
+
+This was verified in NFSMW with **simultaneous independent acceleration and braking**, without automatic menu scrolling or phantom throttle. The exact physical and virtual axes matter:
+
+| Physical G29 (for RealManual) | LGS / Gremlin input | Range: released → pressed | Virtual vJoy output (for NFSMW) |
+| --- | --- | --- | --- |
+| Steering `Wheel:JoyX` | Gremlin `X Axis` (Axis 1) | Center → left/right | vJoy **X Axis**, full centered range |
+| Throttle `Wheel:JoyZ` | Gremlin `Y Axis` (Axis 2) | 100 → 0 | vJoy **Y Axis**, **50 → 0** |
+| Brake `Wheel:JoyR` | Gremlin `Z Rotation` (Axis 6) | 100 → 0 | vJoy **Z Axis**, **50 → 100** |
+| Clutch `Wheel:JoyY` | Gremlin `Slider` (Axis 7) | 100 → 0 | **Not mapped**; RealManual reads the physical clutch |
+
+**Why centered half-axes?** NFSMW interpreted the tested UCR/virtual-DS4 throttle trigger as fully pressed at rest, even though the Windows axis moved correctly. Using vJoy axes with a centered resting position and limited half-axis travel solved the issue on this system. It is **not** evidence that every NFSMW installation or controller requires centered pedals: the tested DS4Windows gamepad's R2 trigger worked with a normal 0–100 range.
+
+#### 1. Configure the physical pedals in Logitech Gaming Software
+
+1. Open LGS and select the profile to use with NFSMW. Disable **Combined Pedals**.
+2. Make that profile **Persistent**, or ensure the NFSMW-specific profile uses the same setting. LGS previously switched back to combined inputs when a different profile became active.
+3. In `joy.cpl` / the Input Detector, confirm all three pedals are independent and return to **100 when released, 0 when pressed**.
+4. Keep this physical configuration unchanged. RealManual reads the G29 directly and needs the original axis directions, not the virtual vJoy directions.
+
+#### 2. Install and configure vJoy
+
+The tested version is **vJoy 2.1.9.1** from the [jshafer817 vJoy releases](https://github.com/jshafer817/vJoy/releases). During installation, retaining the Feeder, Configuration, Monitoring and Device Listing utilities is useful for testing.
+
+Open **Configure vJoy** and set up **Device 1**:
+
+| Option | Tested configuration |
+| --- | --- |
+| Enabled axes | **X, Y, Z** only |
+| Rx, Ry, Rz, Slider, Dial/Slider2 | Disabled |
+| Buttons | 32 |
+| POV hats | 1 continuous (optional if using a D-pad) |
+| Force-feedback effects | Disabled on the *virtual* device |
+| Enable vJoy | On |
+
+Apply and verify **vJoy Device** appears in `joy.cpl`. The configuration utility may be closed afterward; the vJoy driver remains active. Disabling vJoy's virtual force-feedback effects does not change the physical G29 driver settings; however, the game no longer sends its normal wheel force feedback through the hidden physical G29. Test LGS's independent centering-spring option if you want steering recentering without in-game FFB; it is **not guaranteed** to work the same on every system.
+
+#### 3. Create a Joystick Gremlin profile
+
+The tested version is **Joystick Gremlin R16**; R14.3 was unstable on this system. Create and save a profile, for example `NFSMW G29 Independent Pedals.xml`. For the tested portable installation, placing the XML **beside the `Joystick.Gremlin.R16` application folder** (in its parent directory) resolved a profile-loading issue.
+
+In **Tools → Input Viewer**, expand the G29 and enable **Axes – Current**. For this hardware, the controls were:
+
+- **X Axis / Axis 1:** wheel steering.
+- **Y Axis / Axis 2:** throttle.
+- **Z Rotation / Axis 6:** brake.
+- **Slider / Axis 7:** clutch (do not map it to vJoy).
+
+For each pedal, select its **physical** G29 axis, create **one action sequence**, add **Response Curve** first and **Map to vJoy** second. Set the curve type to **Piecewise Linear**, leave **Symmetric** off, and keep the default deadzone during initial validation.
+
+**Throttle: G29 Y Axis → vJoy Device 1 / Y Axis, Absolute**
+
+| Curve input X | Curve output Y |
+| ---: | ---: |
+| `-1.00` | `-1.00` |
+| `+1.00` | `0.00` |
+
+**Brake: G29 Z Rotation → vJoy Device 1 / Z Axis, Absolute**
+
+| Curve input X | Curve output Y |
+| ---: | ---: |
+| `-1.00` | `+1.00` |
+| `+1.00` | `0.00` |
+
+The pedals are physically **+1 released** and **−1 fully pressed**. Gremlin expresses neutral vJoy output as `0` (equivalent to 50 on AutoHotkey's 0–100 axis scale). Thus throttle output is `0 → -1` as the pedal is pressed; brake output is `0 → +1`.
+
+**Steering: G29 X Axis → vJoy Device 1 / X Axis, Absolute**, with no response curve initially.
+
+Save with `Ctrl+S`, **activate** the Gremlin profile using its joystick toolbar icon, then inspect **Input Viewer → vJoy Device 1 → Axes – Current**:
+
+| Pedal position | vJoy Y (throttle) | vJoy Z (brake) |
+| --- | ---: | ---: |
+| Neither pressed | 0 (center) | 0 (center) |
+| Throttle fully pressed | −100% | 0 |
+| Brake fully pressed | 0 | +100% |
+| Both fully pressed | −100% | +100% |
+
+If the physical pedal mapping reports different names or directions on your G29, verify inputs before copying these curves. **Gremlin must stay active while playing**, unlike vJoy's configuration utility.
+
+#### 4. Map the controls NFSMW uses directly
+
+Add a **Map to vJoy** action to the matching physical G29 button in Gremlin. Use Input Viewer → **Buttons & Hats** to identify the button number. Map buttons as ordinary press/release events: both **Press** and **Release** enabled, **Invert activation** off.
+
+The tested wheel's right and left paddles are `Wheel:Joy5` and `Wheel:Joy6`; they can be passed through to vJoy Buttons 5 and 6 (or any two distinct vJoy buttons configured in NFSMW). **RealManual monitors the physical paddle presses for gear synchronization; it does not generate a second native paddle shift.** Also map any desired NOS, Speedbreaker, Pause/Options, and camera buttons to unused vJoy buttons. NFSMW can assign the Primary and Secondary slots to different buttons, avoiding overlapping virtual-button ownership for duplicate physical actions.
+
+**Do not route the G29 clutch, H-shifter gear positions or ignition through vJoy.** RealManual reads these directly from the allowlisted physical wheel. Configure ignition under `[Profile.SimRig.Hotkeys]`, not as virtual input.
+
+In NFSMW → **Options → Controls**, select **vJoy Device** and bind:
+
+| Game action | Tested virtual mapping |
+| --- | --- |
+| Accelerate | **Y Axis** |
+| Brake / Reverse | **Z Axis** |
+| Steer Left / Right | **X Axis** |
+| Shift Up / Down | Corresponding vJoy paddle buttons |
+| NOS, Speedbreaker, Options | Your selected vJoy button assignments |
+| Handbrake | Leave unbound if RealManual is configured to send the handbrake keyboard key |
+
+Test steering, throttle, brake and button presses inside the game. NFSMW may need bindings re-entered after changing controllers; save using the game's normal exit flow.
+
+#### 5. Configure HidHide to avoid device-selection conflicts
+
+HidHide was necessary on the tested system because NFSMW sometimes chose the **Arduino handbrake** instead of the virtual driving controller; merely hiding the G29 was insufficient. The working arrangement keeps the physical devices accessible to allowlisted readers while hiding them from NFSMW:
+
+- **Devices tab:** hide the **physical G29** (`VID_046D&PID_C24F`) and **Arduino Leonardo** (`VID_2341&PID_8036`); leave **vJoy Device** visible. Turn on **Enable device hiding**.
+- **Applications tab:** allowlist the **actual executable** running RealManual (such as `AutoHotkey64.exe`, or a compiled RealManual executable), **Joystick Gremlin's executable**, and relevant LGS software where necessary. **Do not allowlist `speed.exe`.** Keep **Inverse application cloak** off for this arrangement.
+- Confirm normal `joy.cpl` shows **vJoy Device** as the driving controller. RealManual/Input Detector may still see the physical wheel and Arduino because the interpreter is allowlisted; that is **expected**, not duplicate mapping.
+
+With this arrangement, **NFSMW detects vJoy while both physical G29 and handbrake stay connected**, and RealManual still detects the Arduino handbrake correctly.
+
+#### 6. Configure RealManual for independent physical pedals
+
+The virtual vJoy axis names **must not** be copied into RealManual. RealManual uses **physical G29** axes for clutch/stalling/brake logic:
+
+```ini
+[Profiles]
+ActiveProfile=1
+
+[JoystickDevices]
+AutoEnumerateDevices=1
+WheelHardwareId=VID_046D&PID_C24F
+HandbrakeHardwareId=VID_2341&PID_8036
+
+[Profile.SimRig.Clutch]
+RequireClutch=1
+ClutchActsAsNeutral=1
+ClutchAxis=Wheel:JoyY
+ClutchAxisIncreasesWhenPressed=0
 ClutchThreshold=40
 
-[Pedals]
-CombinedPedalAxis=1JoyZ
-CombinedPedalCenter=50
-BrakeAxisIncreasesWhenPressed=1
-BrakeActiveThreshold=55
+[Profile.SimRig.Pedals]
+UseCombinedPedals=0
+CombinedPedalAxis=
+BrakeAxisIncreasesWhenPressed=0
+ThrottleAxis=Wheel:JoyZ
+BrakeAxis=Wheel:JoyR
+ThrottleAxisIncreasesWhenPressed=0
+BrakeActivePercent=10
 
-[Handbrake]
-HandbrakeAxis=2JoyR
+[Profile.SimRig.Handbrake]
+RealManualControlsHandbrake=1
+HandbrakeAxis=Handbrake:JoyR
+HandbrakeAxisIncreasesWhenPulled=1
 HandbrakeThreshold=20
 ```
 
-The harder sequential brake-reset threshold is configured separately:
+All three pedals decrease from 100 released toward 0 when pressed. The external handbrake's R axis is a *different device* from the G29 brake's R axis, so `Wheel:JoyR` and `Handbrake:JoyR` do not conflict.
+
+**Tested startup sequence:** LGS with separate pedals enabled → Joystick Gremlin running/profile active → RealManual running → NFSMW. Once HidHide is configured, the physical handbrake can remain connected. Start or reload RealManual with the desired primary controller attached. `speed.exe` launch/relaunch refreshes the active RealManual profile, but NFSMW independently selects and binds the game-visible controller.
+
+---
+
+## Setup B — DualShock 4 Gamepad
+
+The Gamepad profile is **sequential only**. It uses the same clutch-required, clutch-to-neutral, stalling/ignition, brake-hold reset, stopwatch and statistics systems where applicable.. It does **not** enable SimRig-only Reverse Assist, H-pattern toggling or shifter-slot handbrake.
+
+### B1. Create a game-compatible virtual controller
+
+1. Install **DS4Windows** and its matching virtual-controller backend as instructed by the distribution you are using. The tested setup used a virtual **DualShock 4**, not an Xbox 360 controller. DS4Windows backends differ among builds, so follow the matching release's driver instructions.
+2. Connect the DualShock 4 and set its DS4Windows **output controller type to DualShock 4**. A virtual Xbox 360 output combined L2/R2 on one legacy axis in testing, causing throttle interference when the clutch was pressed; virtual DS4 provided independent analog triggers.
+3. Use modest deadzones as a starting point (tested: about **0.08 for sticks** and **0.03 for triggers**) and adjust if necessary.
+4. In HidHide, hide the **physical** DS4 from NFSMW, allowlist `DS4Windows.exe`, and leave the **virtual** DS4 visible. Avoid relying on the legacy DS4Windows “Hide DS4” option when HidHide owns device filtering. Keep only one virtual controller output active to avoid VID/PID ambiguity.
+5. In `joy.cpl` and the Input Detector, verify independent triggers and stick axes, then bind steering/throttle/brake/NOS/handbrake directly inside NFSMW.
+
+The working Gamepad layout was:
+
+| Control | Source | Destination |
+| --- | --- | --- |
+| Steering | Left stick X | NFSMW native steering |
+| Throttle | R2, `Gamepad:JoyU` | NFSMW native throttle; RealManual stall telemetry |
+| Brake | Right stick **down**, `Gamepad:JoyR` (50 → 100) | NFSMW native brake; RealManual brake telemetry |
+| Clutch | L2, `Gamepad:JoyV` (0 → 100) | RealManual |
+| Upshift / downshift | R1 `Gamepad:Joy6` / L1 `Gamepad:Joy5` | RealManual sequential actions |
+| Ignition | Right stick **up**, `Gamepad:JoyR` (50 → 0) | RealManual analog-to-digital action |
+| Handbrake | Square `Gamepad:Joy1` | NFSMW native binding by default; can be changed to RealManual for analog bindings with configurable thresholds |
+
+The right-stick **up/down** uses the same physical axis for different actions: brake down, ignition up, resting center. RealManual uses distinct calibration endpoints, and the Gamepad's driving assignments must be coordinated with this layout. Alternate physical controllers may expose different axes/buttons.
+
+### B2. Configure the Gamepad inputs
 
 ```ini
-[Sequential]
-BrakeResetThreshold=70
+[Profiles]
+ActiveProfile=0
+
+[JoystickDevices]
+AutoEnumerateDevices=1
+GamepadHardwareId=VID_054C&PID_05C4
+
+[Profile.Gamepad.Transmission]
+MaxForwardGear=6
+
+[Profile.Gamepad.Clutch]
+RequireClutch=1
+ClutchActsAsNeutral=1
+ClutchThreshold=40
+
+[Profile.Gamepad.Inputs]
+ClutchSource=Gamepad:JoyV
+ThrottleSource=Gamepad:JoyU
+BrakeSource=Gamepad:JoyR
+HandbrakeSource=Gamepad:Joy1
+RealManualControlsHandbrake=0
+UpshiftSource=Gamepad:Joy6
+DownshiftSource=Gamepad:Joy5
+IgnitionSource=Gamepad:JoyR
+
+[Profile.Gamepad.AxisCalibration]
+ClutchReleased=0
+ClutchPressed=100
+ThrottleReleased=0
+ThrottlePressed=100
+BrakeReleased=50
+BrakePressed=100
+HandbrakeReleased=0
+HandbrakePressed=100
+UpshiftReleased=0
+UpshiftPressed=100
+DownshiftReleased=0
+DownshiftPressed=100
+IgnitionReleased=50
+IgnitionPressed=0
+
+[Profile.Gamepad.Activation]
+AnalogActivationPercent=60
+AnalogReleasePercent=40
+AnalogHandbrakeActivationPercent=20
+AnalogHandbrakeReleasePercent=15
 ```
 
-Reverse Assist also has a separate **engagement** threshold:
+Input types are **inferred** from the configured source: axis, button, keyboard key or POV. Analog axis endpoints describe *physical actuation*, and RealManual converts the clutch to its own **clutch-release percentage** (0 = fully depressed, 100 = released). When an analog axis drives a digital action such as ignition or sequential shift, `AnalogActivationPercent` and `AnalogReleasePercent` provide hysteresis to avoid repeated triggers near a threshold. For analog script-controlled handbrakes, use the dedicated activation/release pair. Digital buttons don't need these analog hysteresis settings. For a POV source, add the corresponding `<Action>POVDirection` setting (0/4500/.../31500) in `[Profile.Gamepad.Inputs]`.
 
-```ini
-[ReverseAssist]
-EngageBrakeThreshold=60
-```
+**Native handbrake:** `RealManualControlsHandbrake=0` lets NFSMW read the controller's handbrake binding. Setting it to `1` makes RealManual read `HandbrakeSource` and send the configured `[GameKeys] HandbrakeKey` instead. In both profiles, the engine-off simulation can force a handbrake command when needed.
 
-Once Reverse Assist is already active, normal brake release uses `[Pedals] BrakeActiveThreshold`.
+**Gamepad shift outputs:** Unlike physical paddles on the SimRig (which RealManual only monitors), Gamepad R1/L1 are RealManual's *sequential shift commands*. Do not simultaneously bind those same controller buttons to NFSMW's native up/downshift controls or you could duplicate the shift.
 
-If you cannot detect your hardware with older software, see [Using newer or incompatible hardware through middleware](#using-newer-or-incompatible-hardware-through-middleware).
+### B3. Launch and change controllers
 
-### Configure the game itself
+Run DS4Windows with the virtual DS4 active, and make sure HidHide exposes the intended virtual Gamepad to NFSMW without a competing SimRig controller. Start RealManual and launch NFSMW. With automatic enumeration, RealManual selects Gamepad when it is the only detected primary device. **If both Wheel and Gamepad remain visible to RealManual, `ActiveProfile=0` is needed to prefer Gamepad—but this does not override NFSMW's own device choice.**
 
-RealManual is a transmission/input bridge.
+When changing from SimRig to Gamepad, close NFSMW, stop or isolate the wheel-side virtual controller (vJoy can remain enumerated even when Gremlin is stopped), activate the virtual DS4, then relaunch the game and verify/rebind its native controls. Switching `Ctrl+F12` during an existing NFSMW session cannot change its native driving device. See [RealManual profile selection is not NFSMW controller selection](#important-realmanual-profile-selection-is-not-nfsmw-controller-selection) for the full tested workflow.
 
-Inside NFSMW, bind the controls that the game can read directly, including:
+---
 
-- steering
-- accelerator
-- brake/reverse
-- normal menu/navigation controls
-- camera/nitrous/speedbreaker and other gameplay buttons you use
+## Configuration reference and runtime features
 
-Also make sure the keyboard output keys under `[GameKeys]` match the corresponding keyboard controls inside NFSMW.
+### Shared keyboard outputs and hotkeys
 
-The default 1.2.0 values are:
+The `[GameKeys]` keyboard bindings must match NFSMW's keyboard controls
 
 ```ini
 [GameKeys]
@@ -312,796 +446,147 @@ ShiftUpKey=e
 ShiftDownKey=q
 ```
 
-`ShiftUpKey` and `ShiftDownKey` are also monitored as **physical keyboard inputs** so RealManual can keep its tracked gear synchronized when you shift with the game's native keyboard controls. RealManual ignores its own synthetic shift outputs for this synchronization path.
+`ForwardKey` can also be used for timed engine throttle blips. `ReverseKey` belongs to SimRig Reverse Assist.
 
-The direct reverse/neutral/forward protocol uses the fixed `0`, `N`, and `1`-`6` keys described above.
+AHK hotkey modifiers use `^` = Ctrl, `+` = Shift, `!` = Alt and `#` = Win. Optional capture hotkeys may be left blank.
 
-### Default hotkeys
+| Default | Function | Availability |
+| --- | --- | --- |
+| `F1` | Show live-mode help | Both |
+| `F2` | Reset/synchronize input and gear state | Both |
+| `F3` / `Ctrl+F3` | Pause/resume / reload configuration | Both |
+| `Ctrl+F12` | Manually switch controller profile | Both, subject to safety/availability |
+| `F4` | H-pattern ↔ sequential | SimRig only |
+| `Shift+F4` | Invert sequential lever positions | SimRig only |
+| `Ctrl+F4` | Toggle maximum 5/6 forward gears | Both |
+| `F5` / `Shift+F5` | Clutch required / clutch-to-neutral | Both |
+| `F6` | Shifter-slot handbrake | SimRig only |
+| `F7` | Stalling/engine simulation | Both |
+| Configured SimRig wheel button (tested `Wheel:Joy24`) | Ignition shutoff/restart | SimRig |
+| Configured Gamepad `IgnitionSource` | Ignition shutoff/restart | Gamepad |
+| `F8` / `Shift+F8` / `Ctrl+F8` | Stopwatch / lap / clear | Both |
+| `F9` / `Shift+F9` / `Ctrl+F9` | Shift/stall/race-restart statistics | Both |
+| `F10` | Record race restart | Both |
+| Optional bindings | NVIDIA Instant Replay / screenshot | Both |
+| `0`, `N`, `1`–`6` | Fixed direct-gear synchronization | Both, game-focused |
 
-The included 1.2.0 config uses:
+**Removed in 1.3.0:** the old F11 **MaxVideoSettings** automation. It targeted a specific older graphics-fix/menu arrangement and proved unreliable; neither the hotkey nor any macro setting is part of current RealManual. Configure graphics in-game or through your installed graphics mods instead.
 
-| Default | Action |
-| --- | --- |
-| `F1` | Show RealManual hotkey/status help |
-| `F2` | Reset/synchronize transmission state |
-| `F3` | Pause/resume RealManual |
-| `Ctrl+F3` | Reload RealManual/config |
-| `F4` | Toggle H-pattern / sequential mode |
-| `Shift+F4` | Invert sequential shifter direction |
-| `Ctrl+F4` | Toggle 5-speed / 6-speed limit |
-| `F5` | Toggle clutch requirement |
-| `Shift+F5` | Toggle clutch-to-neutral |
-| `F6` | Toggle shifter-slot handbrake |
-| `F7` | Toggle simulated stalling |
-| `1Joy24` | Ignition / engine restart |
-| `F8` | Stopwatch start/pause/resume |
-| `Shift+F8` | Stopwatch lap |
-| `Ctrl+F8` | Clear stopwatch |
-| `F9` | Toggle shift statistics display |
-| `Shift+F9` | Toggle stall statistics display |
-| `Ctrl+F9` | Toggle race-restart statistics display |
-| `F10` | Record one race restart |
-| `F11` | Run/cancel maximum-video-settings automation |
-| blank by default | Save NVIDIA Instant Replay |
-| blank by default | Capture NVIDIA screenshot |
+### Clutch, shifting and gear tracking
 
-Live feature toggles change the current running state only. They don't write the new value back to `config.ini`; reloading RealManual restores the saved configuration.
+`RequireClutch` controls whether shifting requires a clutch, while `ClutchActsAsNeutral` controls whether pressing the clutch temporarily selects neutral. They are **independent options**, including on Gamepad. SimRig can use H-pattern or sequential; Gamepad is always sequential. Clutch-required sequential shifting may queue shifts until release; clutch-neutral restores the intended virtual gear when the clutch releases.
 
-### Shifter handbrake
+For the SimRig, RealManual observes native paddle and physical keyboard shift inputs to update tracked gear, but does **not** generate an extra shift on native paddle presses. For the Gamepad, the configured up/down actions drive the sequential logic. The H-shifter ASI handles RealManual's direct-gear commands.
 
-`EnableShifterHandbrake` allows one H-pattern shifter position to act as a handbrake while RealManual is in sequential mode.
+### Brake-hold reset and independent threshold units
 
-The default config recommends second gear:
+Both profiles can use `EnableBrakeHoldGearReset=1`. After a sustained hard-brake hold (`BrakeHoldResetMs`), the sequential transmission can re-establish tracked first gear. `BrakeResetPercent` is normalized **brake actuation from 0 to 100**. `BrakeActivePercent`, reverse-assist `EngageBrakePercent`, throttle `ThrottleThreshold`, and handbrake percentages likewise use normalized actuation where applicable.
 
-```ini
-[Handbrake]
-EnableShifterHandbrake=0
-ShifterHandbrakeButton=1Joy14
-```
+### Stalling, ignition and reverse assistance
 
-The default sequential lever uses third/fourth gear positions, so second gear avoids overlap.
+RealManual's optional engine simulation may stall at low throttle when first gear is coupled. When simulated engine-off, it sends/maintains neutral and forces handbrake output, then requires an eligible ignition/restart input. It is a **simulation** based on gear, clutch and pedal state, not actual NFSMW RPM, vehicle speed or drivetrain physics. SimRig restart requires a neutral physical shifter state; Gamepad has no H-shifter gate and uses its sequential neutral logic. Clutch-restart requirements follow the active profile's configuration.
 
-If the shifter-handbrake slot overlaps either configured sequential shift position, RealManual gives the handbrake ownership of the conflicting shifter arrangement while that feature is enabled. For normal sequential-shifter use, choose a non-overlapping slot.
+SimRig-only `EnableReverseAssist` optionally sends the configured digital reverse key during eligible reverse braking **for faster max speed reversing (useful against cops)**, using `EngageBrakePercent` for engagement and `BrakeActivePercent` for release. RealManual controls the external handbrake when `RealManualControlsHandbrake=1`; `0` leaves its normal actuation to NFSMW's native binding. If HidHide hides the handbrake from NFSMW, select **RealManual routing**, not native routing.
 
-### Sequential brake-hold reset
+### Statistics and stopwatch
 
-Sequential mode can reset its tracked gear to first after sustained hard braking:
-
-```ini
-[Sequential]
-EnableBrakeHoldGearReset=1
-BrakeHoldResetMs=2000
-BrakeResetThreshold=70
-```
-
-This is a recovery heuristic for cases where the game's actual sequential gear may no longer match RealManual's tracked gear.
-
-The reset:
-
-- establishes first gear as the new tracked target;
-- clears stale queued sequential shifts;
-- requires the sequential lever to return to neutral before creating another shift;
-- preserves clutch-to-neutral if the clutch is intentionally holding the game in neutral;
-- coordinates with Reverse Assist and stall-protection timing.
-
-### Reverse Assist
-
-Reverse Assist is intended to improve reversing when the physical brake pedal is too stiff or difficult to hold far enough for strong reverse acceleration.
-
-When enabled, RealManual can hold the configured NFSMW `ReverseKey` digitally while the car is in an eligible reverse state.
-
-```ini
-[ReverseAssist]
-EnableReverseAssist=1
-EngageBrakeThreshold=60
-```
-
-Behavior:
-
-- the brake must first cross `EngageBrakeThreshold` to engage the assist;
-- once active, it stays active until the pedal falls below the normal `[Pedals] BrakeActiveThreshold`;
-- pressing the clutch immediately disables the assist;
-- in H-pattern mode, the physical shifter must be in reverse and the direct reverse command must have succeeded;
-- in sequential mode, Reverse Assist cooperates with the sequential brake-hold reset state.
-
-This feature still uses the shared combined gas/brake axis.
-
-### Stalling / engine simulation
-
-The optional stall system simulates an engine-off state using gear, clutch, and pedal state.
-
-```ini
-[Stalling]
-EnableStalling=1
-ClutchReleaseThreshold=60
-ThrottleThreshold=15
-RestartClutchThreshold=15
-NeutralResendMs=50
-ThrottleBlipMs=500
-NoInputStallDelayMs=700
-BrakeResetStallGraceMs=100
-```
-
-When enabled, RealManual can stall in FIRST gear when:
-
-- the clutch is released too far without sufficient throttle; or
-- first gear remains coupled at low/no throttle long enough.
-
-While the simulated engine is off:
-
-- RealManual repeatedly maintains neutral;
-- the handbrake is forced on;
-- ordinary transmission behavior is blocked until restart.
-
-Restart behavior:
-
-- the physical H-pattern shifter must be in neutral (I know you can start a car in any gear, but this is good practice);
-- if `RequireClutch=1`, the clutch must also be pressed deeply enough to satisfy `RestartClutchThreshold`;
-- RealManual sends a simulated throttle blip and resumes from neutral.
-
-The stall model is still a simulation; it does not read actual NFSMW RPM, vehicle speed, engine torque, or clutch torque from game memory.
-
-### Statistics
-
-Version 1.2.0 adds persistent statistics for:
-
-- shifts;
-- simulated stalls;
-- manually recorded race restarts.
-
-Enable categories independently:
-
-```ini
-[Statistics]
-TrackShifts=1
-TrackStalls=1
-TrackRaceRestarts=1
-ClearAllTimeOnStartup=0
-```
-
-RealManual stores statistics in:
-
-```text
-stats.txt
-```
-
-#### Session definition
-
-A **Session** is the lifetime of one NFSMW `speed.exe` process.
-
-- Starting/reloading RealManual while the same NFSMW process is still running resumes the same session.
-- When that `speed.exe` process ends or is replaced, RealManual transfers the completed Session counters into AllTime.
-- The next NFSMW process begins a fresh Session.
-- Session counters are persisted while the game is running so a RealManual reload does not discard the current session.
-
-The on-screen statistics panel shows **Session** values. Persistent AllTime values remain in `stats.txt`.
-
-Race restarts are not inferred automatically; use `RaceRestartButton` to record one.
-
-`ClearAllTimeOnStartup=1` is a one-shot maintenance option. RealManual clears the AllTime counters and resets that config value back to `0`.
-
-### Stopwatch and shared overlays
-
-RealManual includes a persistent in-game stopwatch with:
-
-- start;
-- pause/resume;
-- laps;
-- clear/reset;
-- configurable refresh interval;
-- configurable maximum displayed lines.
-
-```ini
-[Stopwatch]
-StopwatchRefreshMs=50
-StopwatchMaxLines=10
-```
-
-The stopwatch and statistics panel use separate tooltip IDs and can be displayed at the same time. The overlay that was activated first keeps the primary position; the second is placed beside it.
-
-### Maximum video settings automation
-
-`MaxVideoSettingsButton` runs a cancellable keyboard macro that navigates NFSMW's menus and applies the author's maximum-video-settings sequence.
-
-This is intentionally a very specific utility.
-
-It is designed to be started:
-
-- from the **main menu**;
-- with the menu selection positioned on **Career Mode** (just having entered the game);
-- with the video settings **not already maxed in both Basic and Advanced**.
-
-Press the hotkey again while the sequence is running to cancel it.
-
-The macro is focus-guarded and pauses RealManual's normal gameplay polling while it owns the menu input sequence.
-
-If your starting selection or existing settings state differs, do not assume the sequence will land on the intended options.
-
-It is meant to max LEVEL OF DETAIL in BASIC and:
-   FULL SCREEN ANTI-ALIASING
-   TEXTURE FILTERING
-   WORLD LEVEL OF DETAIL
-   ROAD REFLECTION DETAIL
-   SHADOW DETAIL
-   CAR GEOMETRY DETAIL
-   CAR REFLECTION DETAIL
-   CAR REFLECTION UPDATED RATE
-   and TURN ON VSYC
-   in ADVANCED
-
-If BASIC or ADVANCED settings don't prompt you to save on ESC, sequence will fail.
-
-### NVIDIA capture hotkeys
-
-Two optional hotkeys can map controller/wheel buttons to NVIDIA Overlay capture shortcuts:
-
-```ini
-SaveInstantReplayButton=
-CaptureScreenshotButton=
-```
-
-When configured:
-
-- `SaveInstantReplayButton` sends NVIDIA Overlay's `Alt+F10`;
-- `CaptureScreenshotButton` sends NVIDIA Overlay's `Alt+F1`.
-
-They are blank by default.
-
-These utilities assume those NVIDIA Overlay shortcuts are still configured to their standard values.
-
-### Startup validation and log
-
-RealManual 1.2.0 performs a broader startup validation pass covering:
-
-- missing config values;
-- invalid boolean syntax;
-- invalid integer syntax;
-- numeric ranges;
-- clutch/brake threshold relationships;
-- duplicate H-pattern/sequential/paddle mappings;
-- duplicate dynamic hotkeys;
-- malformed hotkeys;
-- conflicts with the fixed MW2005-HShifter protocol;
-- configured hardware availability.
-
-If `WriteStartupLog=1`, the report is written to:
-
-```text
-startup_log.txt
-```
-
-Use the tray-menu **Open Validation Log** command when diagnosing a configuration problem.
-
-### Device numbers can change
-
-Windows may assign a different joystick number after:
-
-- changing USB ports;
-- reinstalling a driver;
-- adding/removing another controller;
-- repairing joystick registry entries.
-
-If an input suddenly stops working after a hardware change, run the Input Detector again and verify that `1Joy...`, `2Joy...`, etc. still match `config.ini`.
-
----
-
-## Features
-
-### Transmission
-
-- Physical H-pattern support for gears 1-6, reverse, and neutral
-- Configurable 5-speed / 6-speed gearbox limit
-- Sequential mode using configurable H-shifter positions
-- Runtime switching between H-pattern and sequential modes
-- Configurable sequential shifter inversion
-- Optional clutch requirement
-- Optional clutch-to-neutral behavior
-- Queued sequential shifts while the clutch is held
-- Direct-gear and virtual-gear synchronization
-- Manual reverse/neutral/1-6 synchronization hotkeys
-- Native paddle-shift synchronization
-- Native physical keyboard shift synchronization
-- Sequential brake-hold first-gear recovery/reset
-- Fail-closed H-pattern and sequential reads with explicit neutral/released re-arming
-
-### Handbrake and reverse
-
-- Optional analog USB handbrake
-- Optional H-shifter-slot handbrake in sequential mode
-- Combined handbrake arbitration between analog, shifter-slot, and simulated engine-off requests
-- Optional Reverse Assist for stronger digital reverse-key output
-- Separate reverse-assist engagement and normal brake-release thresholds
-
-### Engine simulation
-
-- First-gear clutch/throttle stall detection
-- First-gear sustained low-throttle stall detection
-- Forced neutral and handbrake while the simulated engine is off
-- Manual ignition shutoff/restart
-- Physical-neutral restart requirement
-- Optional clutch restart requirement
-- Stall/restart throttle-blip effects
-- Brake-reset stall-grace coordination
-- New-game stall suppression until the first accepted driver shift
-
-### Statistics and timing
-
-- Persistent per-NFSMW-process Session statistics
-- Persistent AllTime statistics
-- Shift tracking
-- Stall tracking
-- Manual race-restart tracking
-- Independent statistics display toggles
-- Persistent stopwatch with pause/resume, laps, and clear
-- Shared statistics/stopwatch overlay layout
-
-### Safety, validation, and recovery
-
-- Fixed protocol-key reservation for `0`, `N`, and `1`-`6`
-- Startup sanitization of unsafe configured bindings
-- Duplicate/malformed hotkey protection
-- Configuration relationship validation
-- Startup hardware detection
-- Fail-closed unreadable controller handling
-- Automatic release of held output keys on focus loss
-- Best-effort output cleanup on RealManual exit/reload
-- NFSMW process restart/crash/replacement detection
-- Internal-only synchronization for a newly launched game process
-- Centralized transient-state clearing across resets and mode changes
-- Config reload from tray/hotkey
-
-### Utilities and performance
-
-- RealManual Input Detector
-- Maximum-video-settings menu automation
-- Optional NVIDIA Instant Replay hotkey
-- Optional NVIDIA screenshot hotkey
-- Focus-aware MainLoop scheduling
-- Default 5 ms focused polling
-- 100 ms unfocused polling
-- Gameplay polling stopped while paused/menu automation is active
+`stats.txt` stores **Session** and **AllTime** shift/stall/race-restart counts. A Session follows one `speed.exe` PID, persists across RealManual reloads while that game process remains alive, and finalizes when the game exits/is replaced. Race restarts are entered manually through `F10`; they are not inferred from game memory. The in-game stopwatch supports start/pause, laps and clear, and can coexist with statistics overlays.
 
 ---
 
 ## Troubleshooting
 
-### Start with `joy.cpl`
+### NFSMW crashes and will not relaunch
 
-RealManual can only use controller inputs that Windows exposes through its joystick interface.
+This is unrelated to RealManual. If NFSMW crashes and subsequent launch attempts fail until Windows is restarted, try **`Win + Ctrl + Shift + B`** to reset the graphics driver, then launch the game again.
 
-Press `Win + R`, enter `joy.cpl`, select the device, and open **Properties**.
+### NFSMW scrolls menus or accelerates at rest
 
-The required axes and buttons should react there before you troubleshoot RealManual itself.
+- With separate G29 pedals, physical values are **100 released → 0 pressed**; NFSMW may treat those released endpoints as held navigation or accelerator input.
+- Verify LGS didn't reactivate a different/combined-pedal profile. In the tested setup, setting the **Separate** LGS profile as persistent resolved the driver-side mode switch.
+- Verify vJoy is the **only game-visible driving controller**; HidHide should hide the physical G29 and Arduino while allowing Gremlin/RealManual to read them.
+- In Gremlin Input Viewer, vJoy throttle must rest at **center (0 signed)** and travel toward −100%; brake must rest centered and travel toward +100%. Don't copy their vJoy axis names into RealManual's physical-pedal settings.
 
-Use this order:
+### NFSMW selects the USB handbrake instead of vJoy
 
-```text
-Hardware / vendor driver
-        ↓
-joy.cpl
-        ↓
-RealManual_InputDetector.ahk
-        ↓
-config.ini
-        ↓
-RealManual.ahk
-        ↓
-MW2005-HShifter.asi / NFSMW
-```
+Hide `Arduino Leonardo` in HidHide **Devices** while keeping RealManual's exact executable in **Applications**. Leave vJoy visible and restart NFSMW. This was the confirmed fix that allowed the handbrake to remain connected permanently during NFSMW launch.
 
-If one layer does not work, fix that layer before moving down the chain.
+### HidHide hides devices from Windows tools
 
-### Controller driver software
+A normal, non-allowlisted `joy.cpl` may show only vJoy. The allowlisted AutoHotkey Input Detector may show the **physical G29 and handbrake plus vJoy simultaneously**. This is correct: the two applications have different visibility permissions. Verify you allowlisted the actual AHK interpreter (`AutoHotkey64.exe` in the tested environment), or the compiled executable if applicable. Keep **Inverse application cloak off** unless you intentionally reconfigure all HidHide rules.
 
-Use the manufacturer's official Windows driver/control software whenever possible. The important requirement is not the program name itself; the device must ultimately be exposed to Windows in a form that works through `joy.cpl` and the RealManual Input Detector.
+### Gamepad trigger/brake conflict or two Wireless Controllers
 
-Common examples include:
+Check DS4Windows output is **virtual DS4**, not Xbox 360, and ensure the physical controller is hidden via HidHide while DS4Windows is allowlisted. The physical DS4 v2 can report `VID_054C&PID_09CC`; the virtual controller used for RealManual's Gamepad hardware match reports `VID_054C&PID_05C4`. Only one intended game-visible virtual controller should be active. Avoid running UCR, Gremlin/vJoy, and DS4Windows outputs simultaneously unless you have deliberately configured distinct roles.
 
-- **Logitech:** Logitech Gaming Software (LGS) for older supported hardware; Logitech G HUB for newer hardware
-- **Thrustmaster:** Thrustmaster Force Feedback driver/Control Panel for supported legacy FFB bases, or My Thrustmaster Panel for newer supported products
-- **Fanatec:** Fanatec App, or the legacy Fanatec Driver/Control Panel where appropriate
-- **MOZA:** MOZA Pit House
+### RealManual starts with the wrong profile or a missing-controller error
 
-RealManual's primary tested Logitech configuration uses **Logitech Gaming Software (LGS)**. Compatibility with other driver suites should be verified with `joy.cpl` and the Input Detector rather than assumed.
+- Check `[Profiles] ActiveProfile` (`0` Gamepad; `1` SimRig) and `[JoystickDevices] AutoEnumerateDevices`.
+- Run `RealManual_DeviceIdentity_Probe.ahk` and confirm the **DirectInput VID/PID** is matched to the expected `WheelHardwareId`, `GamepadHardwareId` or `HandbrakeHardwareId`. The device's generic `JoyName` is not sufficient.
+- With only one primary controller present, **automatic** mode deliberately overrides the configured preference. With both detected, the preference wins for **RealManual only**; NFSMW's selected controller may differ.
+- Hardware IDs must match the **actual** intended physical or virtual device. Distinguish physical DS4 (`09CC` in the tested revision) from the virtual DS4 (`05C4` in the tested setup); duplicate matching IDs are rejected.
+- In **manual** mode, slots may change after reconnecting devices; read them afresh using the Input Detector. The probe can also identify which numbered slot belongs to a device.
+- On failed live Ctrl+F12 switching, release the old clutch, clear pending shifts, or switch with NFSMW closed. A missing target controller is intentionally not selected. Even if switching succeeds, relaunch NFSMW when changing its native controller.
 
-Some Fanatec bases provide a **Compatibility PC mode** intended specifically for older games; on supported bases this can make the device identify as an older Fanatec model that legacy titles recognize.
+### `joy.cpl` works but RealManual doesn't
 
-### `joy.cpl` works, but RealManual Input Detector does not
+Check `RealManual.ini` is alongside the script, `speed.exe` has focus, RealManual isn't paused, the actual AutoHotkey executable is allowed through HidHide, and `startup_log.txt` contains no hardware-ID/config validation error. If the game runs elevated, use compatible permissions for the script. Confirm `Wheel:JoyR` belongs to the G29 brake and `Handbrake:JoyR` belongs to the separate lever.
 
-Check the following:
+### Direct gears or sequential shifts fail
 
-1. Close any old copy of RealManual or another input script that may be polling/remapping the same device.
-2. Run `RealManual_InputDetector.ahk`.
-3. Verify the device number and axis/button identifiers again.
-4. Try a stable motherboard USB port rather than a hub for initial diagnosis.
-5. Disconnect unrelated controllers temporarily and test with only the wheel/shifter connected.
-6. Reboot after driver or USB enumeration changes.
-7. If the device works under another Windows user account but not your main account, see [Repairing Windows joystick registry/enumeration data](#repairing-windows-joystick-registryenumeration-data).
+Check the MW2005-HShifter ASI is loaded exactly once and the fixed `0`, `N`, `1`–`6` protocol is unmodified. Check reserved-key diagnostics in `startup_log.txt`. After a disconnected/unreadable sequential input, return its control to neutral/released so the edge-trigger logic can re-arm. Native paddle controls must be mapped in NFSMW or the active virtual-controller profile; RealManual monitors them but does not forward them for the SimRig.
 
-### Input Detector works, but RealManual does not
+### Older or newer controllers and other driver suites
 
-Check:
+The **confirmed** virtual DirectInput workaround here is **G29 + LGS + Joystick Gremlin R16 + vJoy 2.1.9.1 + HidHide**. The same idea—vendor driver for physical input, a curve/mapping layer for game-visible vJoy, and HidHide for duplicate-device prevention *may* work with G HUB, Thrustmaster, Fanatec, MOZA, or other DirectInput-accessible gear. You must rediscover each device's physical axes, polarity and VID/PID, build matching curves, and test game compatibility. No blanket guarantee is made for these devices or their force-feedback behavior.
 
-- `config.ini` is beside `RealManual.ahk`
-- the mapped names exactly match the Input Detector (`1Joy13`, `2JoyR`, etc.)
-- the correct feature is enabled in `config.ini`
-- NFSMW is running as `speed.exe` and is the active foreground window
-- RealManual is not paused from its tray menu/hotkey
-- if NFSMW is running as Administrator, run RealManual at the same privilege level
-- check `startup_log.txt` through **Open Validation Log** in the RealManual tray menu
+### Logitech Gaming Software no longer detects the G29 (confirmed fix)
 
-### Startup log reports a reserved protocol conflict
+On the tested **G29 with LGS 9.04.49**, Windows still recognized the wheel (`VID_046D&PID_C24F`), `joy.cpl` and Joystick Gremlin received its inputs, and LGS showed G29 firmware information in Settings—but the wheel was missing from LGS's main device selector, so its operating range could not be adjusted. Restarting Windows, reconnecting the wheel, disabling HidHide and resetting LGS's `settings.json` did not resolve it. **Reinstalling the two wheel driver INF files bundled with LGS restored detection on this system.**
 
-The physical keyboard keys `0`, `N`, and `1`-`6` belong to MW2005-HShifter's fixed direct-gear protocol.
-
-If `startup_log.txt` reports a conflict:
-
-1. Find the named config entry.
-2. Change that binding to a non-reserved key/button/axis.
-3. Reload RealManual.
-4. Confirm the warning is gone.
-
-RealManual intentionally disables conflicting runtime bindings rather than allowing them to interfere with direct gear commands.
-
-### RealManual reacts, but direct gears do not work
-
-This usually points to the ASI/direct-protocol side rather than controller detection.
-
-Check:
-
-- `MW2005-HShifter.asi` is in the NFSMW root or `scripts` directory used by your ASI loader
-- your ASI loader is working
-- you do not have two different copies/versions of MW2005-HShifter installed at the same time
-- the game is the supported 1.3 Black Edition build
-- `0`, `N`, and `1`-`6` are not being intercepted/rebound by another script or utility
-- `startup_log.txt` does not report a reserved-key conflict
-
-### Sequential shifts stop after an input/device problem
-
-RealManual 1.2.0 intentionally fails closed when it cannot read both configured sequential directions safely.
-
-After the input becomes readable again, return the sequential lever to its neutral/released position before attempting the next shift.
-
-The same re-arm principle applies after several mode changes, handbrake ownership changes, resets, and other synchronization events.
-
-### Shifter handbrake works, but the sequential lever does not
-
-Check whether `ShifterHandbrakeButton` overlaps `SequentialUpshiftButton` or `SequentialDownshiftButton`.
-
-Use a non-overlapping shifter position if you want the sequential H-shifter pair and shifter handbrake available together. The included config recommends second gear for the handbrake and third/fourth for sequential shifting.
-
-### Reverse Assist does not engage
-
-Check:
-
-- `EnableReverseAssist=1`
-- `[GameKeys] ReverseKey` matches NFSMW's brake/reverse keyboard control
-- `CombinedPedalAxis` is correct
-- `BrakeAxisIncreasesWhenPressed` matches the physical axis direction
-- `EngageBrakeThreshold` is on the brake side of `CombinedPedalCenter`
-- the clutch is not currently pressed
-- in H-pattern mode, the shifter is actually in reverse
-- check `startup_log.txt` for pedal-axis/threshold warnings
-
-### Statistics do not update
-
-Check:
-
-- the relevant `TrackShifts`, `TrackStalls`, or `TrackRaceRestarts` option is enabled
-- the corresponding statistics display toggle is enabled if you expect to see it on-screen
-- race restarts are recorded manually with `RaceRestartButton`
-- `stats.txt` is writable beside `RealManual.ahk`
-
-Remember that the on-screen panel displays **Session** values. AllTime values are stored in `stats.txt` and are updated when the owning NFSMW process session is finalized.
-
-### Maximum video settings automation navigates incorrectly
-
-The automation assumes a specific starting state.
-
-Before using it:
-
-- be on the NFSMW **main menu**
-- have **Career Mode** selected
-- use the expected 1.3 Black Edition menu layout
-- do not assume it will work correctly if Basic and Advanced video settings are already in a different/maxed state
-
-Press the hotkey again to cancel an active sequence.
-
-### Using newer or incompatible hardware through middleware
-
-If newer hardware does not expose a DirectInput-compatible device that NFSMW can use, middleware such as vJoy/UCR or Joystick Gremlin can create a virtual DirectInput device for the game. RealManual can then be configured against either the physical or virtual joystick device, depending on which one Windows/AutoHotkey exposes reliably.
-
-This path is intended as a compatibility fallback and has **not been validated on every wheel or controller model**.
-
-A useful goal is to create a virtual Windows joystick that RealManual can see even when the physical hardware is exposed through a newer or incompatible input path.
-
-#### Option A: UCR + vJoy
-
-**Universal Control Remapper (UCR)** can read both XInput and DirectInput controllers and can output a virtual DirectInput controller through **vJoy**.
-
-Projects:
-
-- UCR: https://github.com/Snoothy/UCR
-- vJoy maintained Windows fork: https://github.com/jshafer817/vJoy
-
-Recommended procedure:
-
-1. Install the manufacturer's normal driver/software first and confirm the physical hardware works in its own control panel.
-2. Install a Windows 10/11-compatible vJoy build.
-3. Open **Configure vJoy** and create one virtual joystick.
-4. Enable enough axes and buttons for the controls you need.
-   - Keep RealManual-specific buttons within buttons 1-32 because the Input Detector scans the first 32 joystick buttons.
-5. Install/start UCR.
-6. Select the physical controller as the input source.
-7. Select the vJoy device as the output device.
-8. Create mappings for the needed controls:
-   - clutch axis -> vJoy axis
-   - shifter buttons -> vJoy buttons
-   - reverse -> vJoy button
-   - paddles -> vJoy buttons
-   - handbrake -> vJoy axis/button as appropriate
-   - steering/gas/brake as well if NFSMW cannot use the physical device directly
-9. Activate the UCR profile.
-10. Open `joy.cpl` and test the **vJoy Device**. Moving the physical controls should now move the virtual device.
-11. Run `RealManual_InputDetector.ahk`.
-12. Configure RealManual using the vJoy identifiers reported by the detector rather than the original physical device identifiers.
-
-If the physical device is XInput-only but UCR can read it, this route can convert the inputs RealManual needs into a vJoy/DirectInput joystick output.
-
-#### Option B: Joystick Gremlin + vJoy
-
-Joystick Gremlin is another strong option when the physical device is already exposed as a DirectInput joystick.
-
-Projects:
-
-- Joystick Gremlin: https://whitemagic.github.io/JoystickGremlin/
-- vJoy: https://github.com/jshafer817/vJoy
-
-Typical procedure:
-
-1. Install/configure vJoy.
-2. Open Joystick Gremlin.
-3. Select the physical wheel/pedals/shifter.
-4. Map the needed physical axes and buttons to the vJoy device.
-5. Activate the Gremlin profile.
-6. Test the vJoy device in `joy.cpl`.
-7. Run the RealManual Input Detector and use the vJoy mappings in `config.ini`.
-
-Joystick Gremlin also provides a **Merge Axis** action. This can be useful when modern pedals expose accelerator and brake as separate axes but RealManual's pedal-dependent features need a combined gas/brake axis. The `Bidirectional` merge operation is intended for pedal-style inputs.
-
-After creating the merged vJoy axis, verify its actual rest/gas/brake values with the Input Detector and configure:
-
-```ini
-[Pedals]
-CombinedPedalAxis=
-CombinedPedalCenter=
-BrakeAxisIncreasesWhenPressed=
-BrakeActiveThreshold=
-```
-
-Then configure the feature-specific harder thresholds as needed:
-
-```ini
-[Sequential]
-BrakeResetThreshold=
-
-[ReverseAssist]
-EngageBrakeThreshold=
-```
-
-#### Optional: HidHide
-
-If both the physical controller and virtual vJoy device are visible to a game, some games may receive duplicate/conflicting input. **HidHide** can hide the original physical device from applications while allowing the remapping software to continue reading it.
-
-Project:
-
-https://github.com/nefarius/HidHide
-
-Use HidHide only when duplicate physical/virtual input is actually a problem.
-
-General setup:
-
-1. Install HidHide and reboot if requested.
-2. Add the remapping application (for example UCR or Joystick Gremlin) to HidHide's allowed applications list.
-3. Select the original physical controller as the device to hide.
-4. Do **not** hide the vJoy output device.
-5. Enable device hiding.
-6. Verify that the remapper still sees the physical device and `joy.cpl` still sees the vJoy device.
-
-If NFSMW needs direct access to the physical wheel for force feedback, hiding it may interfere with that path. RealManual itself does not emulate or manage force feedback, so test carefully before hiding a wheel base from the game.
-
-### Repairing Windows joystick registry/enumeration data
-
-> **Advanced troubleshooting. Back up the affected registry keys before deleting anything. Do not delete unrelated HID/controller keys.**
-
-A controller can be correctly installed at the USB/HID level while its per-user Windows joystick state is stale or corrupt. Symptoms can include:
-
-- the device appears in `joy.cpl` but its Test page is blank
-- AutoHotkey/RealManual sees no input even though the game or vendor software does
-- the device works in one Windows user profile but not another
-- joystick numbers change or disappear
-- stale controller names remain after driver changes
-
-Windows stores some of this data per user under `HKEY_CURRENT_USER`, so two Windows accounts on the same PC can behave differently.
-
-#### Find the device VID/PID
-
-Open **Device Manager**:
-
-1. Find the wheel/controller under **Human Interface Devices**, **Sound, video and game controllers**, or the vendor-specific category.
-2. Open **Properties**.
-3. Open the **Details** tab.
-4. Select **Hardware Ids**.
-5. Note the value containing:
+1. Fully close **LGS** (`LCore.exe`), NFSMW, RealManual and Joystick Gremlin.
+2. Disconnect the **G29 USB cable**.
+3. Open the LGS driver directory (adjust the path if LGS is installed elsewhere):
 
    ```text
-   VID_XXXX&PID_YYYY
+   C:\Program Files\Logitech Gaming Software\Drivers\LGJoyHid\
    ```
 
-For example, the Logitech G29 uses:
+4. Right-click **`LGJoyHid.inf`** → **Show more options → Install** (on Windows 11).
+5. Open the **`WinUSB`** subfolder and right-click **`LGJoyWinUsb.inf`** → **Install**.
+6. Reconnect the G29, allow its calibration rotation to finish, then launch LGS. Confirm that the G29 appears in the device selector and that its **wheel operating-range** controls are available again.
 
-```text
-VID_046D&PID_C24F
-```
+This repairs the existing driver registration without first uninstalling the wheel or LGS. Both INF files were installed in the successful test; it wasn't established which individual installation resolved the issue. This is a **confirmed fix for the tested configuration**, not a guarantee for every Logitech installation.
 
-#### Back up the per-user joystick keys
+### Windows joystick registry/enumeration issues (advanced)
 
-For a G29, PowerShell/Command Prompt examples are:
-
-```bat
-reg export "HKCU\System\CurrentControlSet\Control\MediaProperties\PrivateProperties\Joystick\OEM\VID_046D&PID_C24F" "%USERPROFILE%\Desktop\G29-OEM-backup.reg"
-reg export "HKCU\System\CurrentControlSet\Control\MediaProperties\PrivateProperties\DirectInput\VID_046D&PID_C24F" "%USERPROFILE%\Desktop\G29-DirectInput-backup.reg"
-```
-
-For another device, replace the VID/PID with the hardware ID reported by Device Manager.
-
-If a key does not exist, `reg export` will report that it could not find it; do not create a replacement manually unless you know exactly what data belongs there.
-
-#### Reset the affected per-user device entries
-
-Close NFSMW, RealManual, the Input Detector, and other controller tools. Disconnect the controller if practical.
-
-Delete **only the matching VID/PID key** under these locations:
-
-```text
-HKEY_CURRENT_USER\System\CurrentControlSet\Control\MediaProperties\PrivateProperties\Joystick\OEM\VID_XXXX&PID_YYYY
-```
-
-and:
-
-```text
-HKEY_CURRENT_USER\System\CurrentControlSet\Control\MediaProperties\PrivateProperties\DirectInput\VID_XXXX&PID_YYYY
-```
-
-For the G29 example:
-
-```bat
-reg delete "HKCU\System\CurrentControlSet\Control\MediaProperties\PrivateProperties\Joystick\OEM\VID_046D&PID_C24F" /f
-reg delete "HKCU\System\CurrentControlSet\Control\MediaProperties\PrivateProperties\DirectInput\VID_046D&PID_C24F" /f
-```
-
-Then:
-
-1. reboot Windows or sign out/restart the affected driver environment
-2. start the manufacturer's driver/control software if it normally runs with the device
-3. reconnect the controller
-4. allow Windows to enumerate it again
-5. test it in `joy.cpl`
-6. run the RealManual Input Detector again
-7. update `config.ini` if the joystick number changed
-
-The purpose of this reset is to remove stale per-user joystick/OEM/DirectInput state so Windows and the vendor driver can regenerate it during enumeration.
-
-#### Check `CurrentJoystickSettings`
-
-Legacy joystick enumeration also uses a mapping under:
-
-```text
-HKEY_CURRENT_USER\System\CurrentControlSet\Control\MediaResources\Joystick\DINPUT.DLL\CurrentJoystickSettings
-```
-
-Typical values include names such as:
-
-```text
-Joystick1OEMName
-Joystick2OEMName
-Joystick1Configuration
-Joystick2Configuration
-```
-
-The `Joystick#OEMName` values identify which VID/PID occupies a legacy joystick slot.
-
-If this key contains stale mappings, or is missing/corrupt on one Windows user profile while the same hardware works on another profile, the problem may be per-user enumeration rather than the physical wheel or USB driver.
-
-Before changing it, export the key:
-
-```bat
-reg export "HKCU\System\CurrentControlSet\Control\MediaResources\Joystick\DINPUT.DLL\CurrentJoystickSettings" "%USERPROFILE%\Desktop\CurrentJoystickSettings-backup.reg"
-```
-
-For a targeted cleanup, remove stale `Joystick#OEMName` and matching `Joystick#Configuration` values that clearly reference a controller which is no longer present, then reconnect/re-enumerate the hardware.
-
-Deleting the entire `CurrentJoystickSettings` key should be treated as a last resort after a backup; allow Windows/vendor software to rebuild it.
-
-#### Driver re-enumeration if registry reset is not enough
-
-If the correct entries do not regenerate:
-
-1. Disconnect the controller.
-2. Open **Device Manager**.
-3. Enable **View -> Show hidden devices**.
-4. Find only the entries belonging to the affected wheel/controller.
-5. Uninstall the affected device entries.
-6. Reboot.
-7. Reinstall or repair the manufacturer's official driver package.
-8. Reconnect the hardware to a stable USB port.
-9. Test `joy.cpl` before reopening RealManual.
-
-Avoid removing unrelated generic HID devices; keyboards, mice, other controllers, and internal devices also appear under the HID categories.
-
-### Device works in one Windows account but not another
-
-This strongly suggests a per-user configuration/enumeration problem because much of the legacy joystick state used here is stored under `HKEY_CURRENT_USER`.
-
-Test `joy.cpl` in both accounts. If one account has a working Test page and the other is blank, focus troubleshooting on the affected account's joystick/DirectInput registry state.
-
-### Controller ordering / enumeration problems
-
-If multiple controllers are attached and RealManual identifies the wrong device number:
-
-1. Close the game and RealManual.
-2. Disconnect all optional controllers.
-3. Connect the main wheel first.
-4. Confirm it in `joy.cpl`.
-5. Connect the shifter/handbrake/secondary devices one at a time.
-6. Run `RealManual_InputDetector.ahk`.
-7. Update all `1Joy...`, `2Joy...`, etc. values in `config.ini`.
-
-Keep devices on the same USB ports after configuration when possible.
+If a controller appears in `joy.cpl` but its Test tab is blank, or only one Windows user account can read it, investigate Windows' per-user joystick/OEM/DirectInput registry records. **Back up relevant keys first**, target only the affected VID/PID, and prefer reinstalling/re-enumerating the vendor driver before deleting unrelated HID records. The legacy settings may reside under `HKCU\System\CurrentControlSet\Control\MediaProperties\PrivateProperties\Joystick\OEM`, `...\DirectInput`, and `HKCU\System\CurrentControlSet\Control\MediaResources\Joystick\DINPUT.DLL\CurrentJoystickSettings`. Never broadly delete HID/controller keys.
 
 ---
 
-## Known Limitations
+## Known limitations
 
-- RealManual currently targets NFSMW 2005 and relies on MW2005-HShifter for direct gear selection.
-- The bundled H-shifter mod currently targets the 1.3 Black Edition executable.
-- RealManual does not provide force feedback.
-- The stall system is a simulation based on pedal and gear state; it does not currently read actual engine RPM, vehicle speed, clutch torque, or other drivetrain values from game memory.
-- Pedal-dependent features such as stall-throttle detection, sequential brake reset, and Reverse Assist currently expect a usable combined gas/brake axis.
-- Race-restart statistics are manually recorded; RealManual does not currently detect race restarts from game memory.
-- The maximum-video-settings automation is a positional menu macro and depends on the documented menu starting state/layout.
-- NVIDIA capture utilities send fixed `Alt+F10` and `Alt+F1` shortcuts; custom NVIDIA Overlay shortcut assignments are not detected automatically.
-- Middleware configurations such as UCR/vJoy, Joystick Gremlin/vJoy, and HidHide are compatibility options and are not guaranteed to work with every wheel/base/driver combination.
-- Windows joystick numbering can change after hardware/driver enumeration changes.
-
----
-
-## Credits and Third-Party Software
-
-RealManual uses a modified build of **MW2005-HShifter**, originally created by **x0reaxeax**.
-
-RealManual-maintained fork:
-
-https://github.com/Eradinelle/MW2005-HShifter
-
-MW2005-HShifter incorporates **MinHook** and Hacker Disassembler Engine components.
-
-See:
-
-```text
-THIRD_PARTY_NOTICES.md
-licenses/MW2005-HShifter-LICENSE.txt
-licenses/MinHook-LICENSE.txt
-```
-
-for attribution and license details.
+- RealManual relies on the MW2005-HShifter direct-gear protocol for the supported NFSMW executable; it does not provide force feedback.
+- **NFSMW may select only one external driving controller per launch**, often favoring the SimRig/wheel-side input when multiple primary controllers are present on the tested installation. RealManual's `ActiveProfile`, automatic VID/PID discovery and `Ctrl+F12` do **not** change the game's selected controller. Exit NFSMW, isolate the desired native input, relaunch, and check/rebind native controls; binding persistence across controller changes is unreliable.
+- In automatic mode, `Ctrl+F12` is not needed for the normal close/change-controller/relaunch workflow because RealManual reselects at a new `speed.exe` PID. Manual mode retains a meaningful profile-switch shortcut, but never bypasses NFSMW's own native device limitation.
+- Simulated stalling/restart does not read real engine RPM, speed or clutch torque.
+- Gamepad is sequential-only; H-pattern, shifter-slot handbrake and Reverse Assist are SimRig-only.
+- VID/PID-based role matching cannot uniquely distinguish **two identical models**; no silent fallback to a different device is used.
+- Native virtual-controller output depends on DS4Windows or Joystick Gremlin actively running. RealManual itself does not create vJoy/virtual DS4 devices.
+- Physical wheel FFB is not passed through vJoy. LGS centering may provide a separate spring effect, but this does not reproduce the game's native wheel forces.
+- Third-party device remapping and registration behaviors can vary with installed driver versions, game mods and Windows joystick ordering.
+- Race-restart statistics are recorded manually. NVIDIA capture hotkeys use the normal overlay shortcuts and depend on the user's overlay configuration.
 
 ---
 
-## License
+## Credits, third-party software and license
 
-RealManual is distributed under the MIT License.
+- **MW2005-HShifter:** originally by **x0reaxeax**; [RealManual-maintained fork](https://github.com/Eradinelle/MW2005-HShifter). The H-shifter build incorporates MinHook and Hacker Disassembler Engine components; consult the repository's `THIRD_PARTY_NOTICES.md` and license files.
+- [AutoHotkey](https://www.autohotkey.com/) — scripting runtime.
+- [Joystick Gremlin](https://whitemagic.github.io/JoystickGremlin/) and [vJoy](https://github.com/jshafer817/vJoy) — optional virtual joystick mapping for the tested independent G29 pedals.
+- [HidHide](https://github.com/nefarius/HidHide) — optional HID visibility filter for physical/virtual devices.
+- **Logitech Gaming Software** and **DS4Windows** — hardware-specific setup tools used in testing. DS4Windows virtual-controller dependencies vary by version.
 
-See `LICENSE.txt` for the complete license terms.
+These external applications/drivers are separately maintained and licensed; RealManual does **not** bundle or replace them.
 
-RealManual is an unofficial community project and is not affiliated with, authorized by, or endorsed by Electronic Arts.
+RealManual is distributed under the **MIT License**; see [LICENSE](LICENSE) for the current repository license and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for dependency attribution. RealManual is an unofficial community project and is not affiliated with, authorized by, or endorsed by Electronic Arts.

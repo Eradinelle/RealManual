@@ -2,6 +2,114 @@
 
 All notable changes to RealManual are documented in this file.
 
+## [1.3.0] - 2026-10-23
+
+### Highlights
+
+- **Added two independently configurable controller profiles**, **SimRig** and **Gamepad**, without replacing the verified G29/H-pattern workflow. This lets a single RealManual installation support either a wheel or a controller with profile-appropriate transmission and input behavior.
+- **Implemented automatic controller enumeration by exact VID/PID**, plus automatic profile choice at startup and after each new `speed.exe` process. This removes the fragile assumption that Windows will always assign the G29, Gamepad, and USB handbrake the same joystick numbers.
+- **Integrated Gamepad sequential shifting, analog/digital clutch input, ignition, stalling, brake-hold reset and handbrake routing** through a normalized input adapter. This gives the Gamepad the applicable simulation features without pretending it has a physical H-pattern shifter.
+- **Added separate SimRig throttle/brake axis support**, with normalized pedal actuation and configurable polarity. This preserves the original combined-pedal arrangement while allowing independently sampled inputs for stalling, brake-hold and reverse logic.
+- **Verified a complete independent G29 pedal setup in NFSMW** using Logitech Gaming Software, Joystick Gremlin, vJoy and HidHide. The middleware is optional and external to RealManual; it translates the wheel's physical axes into NFSMW-compatible virtual driving inputs while RealManual continues reading the physical clutch, shifter and handbrake.
+- **Removed deprecated MaxVideoSettings automation**, its F11 hotkey and dependent script machinery because the old menu macro was unreliable under the current game/mod setup.
+- **Refreshed source and configuration documentation**, providing consistently numbered source sections, variable/function lookup entries, accurate INI comments and current startup diagnostics.
+- **Added the read-only DirectInput/WinMM Device Identity Probe to the release diagnostics** and documented how to use its verified joystick-slot and VID/PID results to configure role-based automatic enumeration, including hidden/virtual controller distinctions.
+- **Documented the verified one-controller-per-launch NFSMW limitation and safe controller-change workflow**: auto enumeration selects RealManual's input profile, but a game relaunch with the intended game-visible device is required to change NFSMW's native driving controller. This prevents treating a successful Ctrl+F12 switch as a native-controller switch.
+
+### Added
+
+#### Profiles, capabilities and configuration
+
+- Introduced `[Profiles]` with **`ActiveProfile=0` (Gamepad)** and **`ActiveProfile=1` (SimRig)**. The setting is a startup preference in automatic mode and an authoritative selection in manual mode. Numeric values reduce accidental profile-name typos; internal names remain descriptive.
+- Added `ToggleProfileButton` (default `Ctrl+F12`) and manual profile switching with target-device validation.
+- Split profile-specific options into `[Profile.SimRig.*]` and `[Profile.Gamepad.*]`, retaining common `[General]`, `[Hotkeys]`, `[GameKeys]`, `[Timing]`, `[Stopwatch]` and `[Statistics]` settings. This prevents one controller's clutch/pedal modes and mappings from silently controlling the other.
+- Kept Gamepad **sequential-only by design**, with no redundant `AllowHPattern` or `AllowReverseAssist` flags. SimRig retains H-pattern/sequential mode selection, shifter handbrake and Reverse Assist.
+- Preserved runtime-adjustable user options across applicable profile transitions while separating per-profile state and capabilities.
+
+#### Automatic joystick identification and controller selection
+
+- Added `[JoystickDevices] AutoEnumerateDevices` with two explicit modes: **`1` = live hardware-ID discovery**, **`0` = fixed manual slots**.
+- Added `GamepadHardwareId`, `WheelHardwareId` and `HandbrakeHardwareId` using exact `VID_XXXX&PID_XXXX` identities; optional `GamepadSlot`, `WheelSlot`, `HandbrakeSlot` remain for manual mode.
+- Added `EnumerateJoystickDevices()`, `ResolveConfiguredJoystickRoles()` and `ResolveJoystickAlias()` to scan responding WinMM joystick slots 1–16 and resolve logical bindings like `Wheel:JoyY` or `Handbrake:JoyR` to currently assigned AutoHotkey slots.
+- Rejected malformed, missing-for-the-active-profile, ambiguous or duplicate hardware matches rather than silently choosing a device by enumeration order. A VID/PID identifies a device model, not a unique serial number; identical models remain ambiguous.
+- Replaced unreliable `JoyName`-only hardware matching because different connected controllers could all report `Microsoft PC-joystick driver` even while their DirectInput and WinMM hardware IDs were distinct.
+- Added `SelectStartupProfile()`: use the **sole resolved primary controller** when only Wheel or Gamepad is present; honor `ActiveProfile` when both are present; refuse ambiguous/no-primary cases. The separate handbrake alone cannot select SimRig.
+- Added `RefreshProfileForNewGame()` to refresh controller ownership on first observation of a **new `speed.exe` PID**. This accommodates relaunching NFSMW after changing connected hardware without manually editing/reloading the RealManual profile every time.
+- Reused PID lifecycle synchronization to reset gear/input transactions for a new game session while avoiding premature direct-gear injection during game initialization.
+- Extended startup reporting to show the configured preference, effective selected profile, reason for selection and actual resolved hardware roles.
+
+#### Bundled device identification and diagnostics
+
+- Added **`RealManual_DeviceIdentity_Probe.ahk`** as a separate, read-only diagnostic for the distribution's `scripts/` folder. It enumerates WinMM/AHK slots 1–16, queries DirectInput identities, and uses the **DirectInput joystick-ID property** to associate each named controller with the correct joystick slot rather than assuming matching enumeration order.
+- The probe reports product/instance names, WinMM manufacturer/product identifiers, OEM registry identifiers, DirectInput VID/PID, instance/product GUIDs and device paths where available. Its **Refresh** and **Copy full report** controls support post-reconnection testing and troubleshooting.
+- Documented copying **`DirectInput VID/PID` / `OEM registry identifier`** into `[JoystickDevices] GamepadHardwareId`, `WheelHardwareId` and `HandbrakeHardwareId`; clarified that the generic `JoyName` is not sufficient, physical and virtual DualShock devices can have different IDs, and missing/ambiguous matches must not be guessed.
+- Retained `RealManual_InputDetector.ahk` for axis direction and button discovery. The identity probe identifies the *device and slot*; the Input Detector identifies the *physical controls within it*.
+
+#### Transactional profile switching and lifecycle safety
+
+- Added candidate preparation, complete profile snapshots, protected commit/rollback, and profile-specific dynamic hotkey ownership. This prevents partial configuration changes when a controller or mapping fails validation mid-switch.
+- Preserved the **tracked gear** and **simulated engine-off state** during successful live profile changes; cleared obsolete edge/clutch/queued-shift transactions and released held synthetic outputs before the new profile takes ownership.
+- Added guards for active clutch-to-neutral, a pressed clutch and pending sequential shifts; switching is refused instead of implicitly re-engaging an unknown gear.
+- Added disconnect-aware handoff: an outgoing device positively confirmed disconnected can be abandoned under restricted safety conditions; an unreadable but still present device or a controller unexpectedly relocated to a different joystick slot does **not** get treated as a released clutch.
+- Supported game-closed switching after hardware disconnection without requiring an unreadable old-controller clutch sample.
+- Fixed a SimRig-startup failure where profile snapshot capture accessed uninitialized `gamepadInputDefinitions` / `gamepadActivationSettings` maps. Those maps now exist regardless of the startup profile.
+- Kept automatic profile refresh tied to game-process changes, not arbitrary live plug/unplug events, because NFSMW's game-visible device selection and bindings are independent of RealManual's discovery.
+
+#### Gamepad input adapter and transmission
+
+- Added typed Gamepad action definitions for **Clutch, Throttle, Brake, Handbrake, Upshift, Downshift and Ignition**. Input kind is inferred from the configured physical source (**Axis**, **Button**, **Key** or **POV**) rather than requiring separate user-selected type strings.
+- Added physical axis released/pressed endpoint calibration (`[Profile.Gamepad.AxisCalibration]`) and `NormalizeGamepadAxis()` / `ReadGamepadActionPercent()`. This permits increasing or decreasing axes and preserves valid zero values instead of confusing them with unreadable input.
+- Added `ReadGamepadDigitalAction()` with per-action edge state and **analog-to-digital hysteresis**. `AnalogActivationPercent` / `AnalogReleasePercent` apply to analog shifts and ignition; a separate activation/release pair serves script-controlled analog handbrakes. Physical buttons and keyboard/POV directions use direct digital states.
+- Added explicit `*POVDirection` support for 45-degree steps (`0`, `4500`, …, `31500`) when an action is bound to a POV hat.
+- Routed Gamepad sequential actions through the existing validated clutch-required / clutch-neutral state machine. With clutch disabled, shifts can occur on a new physical input edge; with clutch required, shifts follow the configured clutch and queued-shift rules.
+- Added Gamepad ignition from a configurable **digital or analog** source, including a tested upward right-stick input, and profile-aware engine restart behavior without a nonexistent H-pattern-neutral gate.
+- Enabled Gamepad stalling, normalized throttle/brake telemetry and **sequential brake-hold first-gear reset**. These features use the same gear/engine simulation concepts as SimRig but read Gamepad-specific input definitions.
+- Disabled SimRig-only H-pattern gear positions, mode inversion, shifter handbrake and Reverse Assist in the Gamepad profile rather than exposing nonfunctional toggles.
+- Added a passive input diagnostic during development to verify normalized action values; the shipping configuration does not require that diagnostic for normal use.
+
+#### SimRig pedal normalization and handbrake routing
+
+- Added **`UseCombinedPedals=1/0`**: original shared G29 axis versus explicit `ThrottleAxis` and `BrakeAxis` assignments. Missing/identical separate axes are rejected when independent mode is enabled.
+- Added separate-throttle polarity (`ThrottleAxisIncreasesWhenPressed`) and reused brake polarity (`BrakeAxisIncreasesWhenPressed`) for the selected pedal representation. The fixed center of the combined axis is internal (`50`) rather than a needless exposed tuning variable.
+- Converted brake activity, sequential hard-braking and Reverse Assist engagement to **normalized 0–100% brake actuation** (`BrakeActivePercent`, `BrakeResetPercent`, `EngageBrakePercent`). These no longer mix legacy raw combined-axis values with independent-pedal percentages.
+- Retained explicitly documented **clutch-release percentages** for clutch and restart thresholds (0 fully pressed, 100 released), rather than silently treating all thresholds as the same physical polarity.
+- Added `ReadProfilePedalSnapshot()` and profile-aware clutch/pedal sampling so stalling, brake-hold, Reverse Assist and handbrake logic consume the correct input type without fabricating one combined gas/brake axis from two independent pedals.
+- Added `RealManualControlsHandbrake` for **both** SimRig and Gamepad. Users can choose script-controlled handbrake output or NFSMW's native mapping; a script-controlled handbrake remains usable even when the physical lever is hidden from NFSMW via HidHide.
+
+### Changed
+
+#### Native NFSMW input and verified hardware configuration
+
+- Confirmed **Gamepad** operation with DS4Windows virtual DualShock 4 output (independent R2 throttle and L2 clutch), right-stick-down native braking, sequential shoulder-button shifts and analog right-stick-up ignition. Using virtual Xbox 360 output had combined-trigger interference in this specific test, so DS4 output was used instead.
+- Confirmed **G29 independent pedal** mapping with LGS Combined Pedals **off** and the appropriate LGS profile persistent. Physical wheel axes remain 100 released → 0 pressed for clutch, throttle and brake.
+- Tested **Joystick Gremlin R14.3 + vJoy 2.1.9.1** to expose steering as vJoy X, throttle as **center → negative half** of vJoy Y, and brake as **center → positive half** of vJoy Z. Piecewise-linear Gremlin response curves provide the precise transforms; NFSMW uses the virtual axes while RealManual continues to read the original hardware through its allowlisted AutoHotkey process.
+- Used **HidHide** to hide the G29 and Arduino Leonardo from NFSMW while preserving their access for RealManual/Gremlin. This avoided NFSMW picking the handbrake instead of the virtual driving device; after configuration, the handbrake remained physically connected during game launch.
+- Kept native paddle input forwarding in the virtual-controller layer while RealManual monitors the physical G29 paddles only for tracked-gear synchronization. Avoided double synthetic shifting.
+- Preserved the original combined-pedal G29 mode as a fallback and the existing SimRig-specific shifting/engine controls.
+
+#### Source organization, validation and runtime
+
+- Consolidated and clarified INI comments for the current two-profile schema, controller aliases, calibration, hysteresis and normalized thresholds. The configuration is a readable end-user reference, not a proposed schema.
+- Updated the script function/variable lookup and renumbered sections consecutively **1–27**; removed letter-suffixed `3A` / `17A` headings and consolidated an otherwise empty section. These were documentation-only structural changes.
+- Standardized descriptions of new controller/profile functions to match RealManual's established comment style, without changing the working core logic during the documentation pass.
+- Kept focused/unfocused polling, output cleanup, fixed MW2005-HShifter protocol protection, statistics and stopwatch behavior from 1.2.0.
+
+### Removed
+
+- **MaxVideoSettings** / F11 keyboard-menu automation, including the old sequence-builder, processing timer, guard state, function helpers, hotkey registration, config field, and obsolete pause/MainLoop/profile-switch special cases. The feature targeted a deprecated graphics configuration and did not operate reliably in testing; the installed Widescreen Fix/game now handles graphics settings without RealManual attempting positional menu navigation.
+- Outdated README/INI references to old combined-only pedal restrictions, unused raw thresholds, generic JoyName selection, and speculative virtual-controller support as if it were untested. The new usage guide distinguishes confirmed G29/DS4 results from untested other hardware.
+
+### Known limitations / not changed
+
+- **NFSMW still chooses its own driving device.** On the tested setup it generally selects only one controller per launch, often favoring the SimRig/wheel-side device when both primary controllers are connected, and may require rebinding after a change. Automatic RealManual profile selection and successful Ctrl+F12 switching do not alter that game-side selection.
+- **Recommended switching workflow:** stop/relaunch NFSMW with the desired controller as the only game-visible driving input. With `AutoEnumerateDevices=1`, RealManual reselects its profile on the new PID, making manual switching usually unnecessary. `Ctrl+F12` remains useful with manual enumeration or on installations where both native devices truly work at once; it does not eliminate the game's relaunch requirement. A vJoy device can remain enumerated even after its feeder has stopped, so isolating the intended game-visible controller requires care.
+- With HidHide enabled, an allowlisted diagnostic may enumerate the physical wheel, Arduino and virtual controller simultaneously; this is intended, not duplicate virtual output to the game.
+- Virtual joystick routing can remove native in-game G29 force feedback. LGS centering-spring behavior is driver-dependent and was not added to RealManual.
+- Hardware compatibility beyond the explicitly tested G29/LGS, USB Arduino handbrake and DS4Windows virtual DualShock 4 remains **pending testing**. Other wheels and vendor drivers may require different mappings, axes and software choices.
+- The stalling model remains simulated rather than reading NFSMW engine physics from memory; race-restart counts still require manual recording.
+
+---
+
 ## [1.2.0] - 2026-09-25
 
 ### Highlights
