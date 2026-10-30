@@ -2636,7 +2636,7 @@ ShowToolTipMessage(message) {
 ; Live hotkeys change the running script state only. They do not write back to RealManual.ini. Reloading RealManual restores the saved config file values.
 ; ==========================================================================================================================================================
 ShowLiveModeStatus(changedSetting) {
-    global activeProfileName, profileToggleButton\
+    global activeProfileName, profileToggleButton
     global requireClutch, clutchActsAsNeutral, invertSequentialShifter, maxForwardGear
     global enableShifterHandbrake
     global toggleTransmissionModeButton, toggleClutchRequiredButton, toggleClutchNeutralButton

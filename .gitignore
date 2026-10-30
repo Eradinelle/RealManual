@@ -4,6 +4,9 @@ startup_log.txt
 # Compiled dependency distributed through Releases
 scripts/MW2005-HShifter.asi
 
+# External tools
+/Joystick.Gremlin.R16/
+
 # Windows
 Thumbs.db
 Desktop.ini
