@@ -31,8 +31,8 @@ For changes since 1.2.0, see [CHANGELOG.md](CHANGELOG.md).
 | Setup | Software | Reason |
 | --- | --- | --- |
 | G29, **combined pedals** | Logitech Gaming Software (LGS) | Original single centered throttle/brake axis; no virtual joystick required if NFSMW recognizes the wheel. |
-| G29, **independent pedals** — tested | **LGS**, [vJoy](https://github.com/jshafer817/vJoy), [Joystick Gremlin](https://whitemagic.github.io/JoystickGremlin/), [HidHide](https://github.com/nefarius/HidHide) | Preserve three independent physical pedals; present a game-compatible virtual joystick while RealManual reads the physical G29. |
-| DualShock 4 — tested | **DS4Windows**, its matching virtual-controller backend, **HidHide** | Create a single virtual DualShock 4 with independent analog inputs and hide duplicate physical input. |
+| G29, **independent pedals** | **LGS**, [vJoy](https://github.com/jshafer817/vJoy), [Joystick Gremlin](https://whitemagic.github.io/JoystickGremlin/), [HidHide](https://github.com/nefarius/HidHide) | Preserve three independent physical pedals; present a game-compatible virtual joystick while RealManual reads the physical G29. |
+| DualShock 4 | **DS4Windows**, its matching virtual-controller backend, **HidHide** | Create a single virtual DualShock 4 with independent analog inputs and hide duplicate physical input. |
 
 **Software distinction:** vJoy and HidHide install drivers that function without their configuration windows. **Joystick Gremlin must remain running with its profile active** to feed vJoy; **DS4Windows must remain running** when it is supplying the gamepad's virtual controller. RealManual must remain running for its own functions.
 
